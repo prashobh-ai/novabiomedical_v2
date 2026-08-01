@@ -39,6 +39,17 @@ jobs:
           test -f site/data/semantic.json
           ls -lh site/data/index.json site/data/semantic.json
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Blocks the deploy if pipeline output and browser code have drifted apart.
+      # A contract mismatch here renders the whole site non-functional while
+      # every Python test still passes.
+      - name: Browser integration test
+        run: node tests/integration.test.mjs
+
       - name: Retrieval quality gate
         run: |
           python -m eval.evaluate --gate --json site/data/eval_report.json

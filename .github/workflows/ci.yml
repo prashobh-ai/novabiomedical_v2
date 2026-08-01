@@ -54,5 +54,24 @@ jobs:
           print('Index OK:', s)
           PY
 
+      - name: Build site data for integration test
+        run: |
+          python -m pipeline.build_index \
+            --source docs_source \
+            --fda knowledge_sources/fda_structured \
+            --out site/data/index.json \
+            --semantic-out site/data/semantic.json
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Runs the real site/js modules against the real site/data. The Python
+      # tests cannot catch pipeline<->browser contract drift, because they never
+      # execute the browser code. This is the test that catches a renamed field.
+      - name: Browser integration test
+        run: node tests/integration.test.mjs
+
       - name: Retrieval evaluation (report only on PRs)
         run: python -m eval.evaluate --index /tmp/index.json --semantic /tmp/semantic.json
