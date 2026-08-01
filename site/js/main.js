@@ -515,13 +515,15 @@ function retrieve(q) {
   const hybrid = hybridSearch(q, {
     bm25: state.bm25,
     semantic: state.semantic,
-    chunksById: state.chunksById,
+    chunks: state.chunks,
     filters: state.filters,
     topK: 20,
   });
 
+  // `chunkIdx` is the retrieval key every downstream consumer indexes on
+  // (cohereByDocument, buildAnswer, explain). Preserve it exactly.
   const rawRanked = hybrid.results.length
-    ? hybrid.results.map(r => ({ id: r.id, score: r.score, _fusion: r }))
+    ? hybrid.results.map(r => ({ chunkIdx: r.chunkIdx, score: r.score, _fusion: r }))
     : state.bm25.search(q, 20);
 
   const cohesion = cohereByDocument(rawRanked, state.chunks, {

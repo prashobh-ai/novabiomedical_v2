@@ -78,8 +78,13 @@ export class SemanticIndex {
     return vec;
   }
 
-  /** Ranked [{ id, score }] by cosine similarity. Vectors are pre-normalised,
-   *  so cosine is a plain dot product. */
+  /** Ranked [{ chunkIdx, score }] by cosine similarity. Vectors are pre-normalised,
+   *  so cosine is a plain dot product.
+   *
+   *  The `chunkIdx` key is not arbitrary: it is the retrieval contract the whole
+   *  app is built on (search.js BM25, answer.js citations, explain.js traces all
+   *  index `chunks[r.chunkIdx]`). A retriever that invents its own key name
+   *  silently produces `chunks[undefined]` downstream. */
   search(query, topK = 20) {
     const qv = this.embed(query);
     if (!qv) return [];
@@ -90,7 +95,7 @@ export class SemanticIndex {
       const base = i * d;
       let s = 0;
       for (let j = 0; j < d; j++) s += this.docVectors[base + j] * qv[j];
-      scored[i] = { id: i, score: s };
+      scored[i] = { chunkIdx: i, score: s };
     }
     scored.sort((a, b) => b.score - a.score);
     return scored.slice(0, topK).filter(r => r.score > 0.01);

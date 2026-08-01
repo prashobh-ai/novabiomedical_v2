@@ -33,8 +33,11 @@ export function isDegenerateQuery(query) {
 }
 
 /**
- * @param {Array<{retriever: string, results: Array<{id:number,score:number}>, weight?: number}>} runs
- * @returns {Array<{id:number, score:number, contributions:Object, retrievers:string[]}>}
+ * Fuses ranked runs on `chunkIdx` — the app-wide retrieval key. Every retriever
+ * passed in must emit it.
+ *
+ * @param {Array<{retriever: string, results: Array<{chunkIdx:number,score:number}>, weight?: number}>} runs
+ * @returns {Array<{chunkIdx:number, score:number, contributions:Object, retrievers:string[]}>}
  */
 export function reciprocalRankFusion(runs, { k = RRF_K, topK = 20 } = {}) {
   const fused = new Map();
@@ -44,12 +47,17 @@ export function reciprocalRankFusion(runs, { k = RRF_K, topK = 20 } = {}) {
     const weight = run.weight ?? 1.0;
 
     run.results.forEach((hit, idx) => {
+      const key = hit.chunkIdx;
+      // A retriever that does not emit chunkIdx would collapse its entire run
+      // into a single `undefined` bucket. Fail loudly instead of silently.
+      if (key === undefined || key === null) return;
+
       const rank = idx + 1;
       const contribution = weight / (k + rank);
-      let entry = fused.get(hit.id);
+      let entry = fused.get(key);
       if (!entry) {
-        entry = { id: hit.id, score: 0, contributions: {}, retrievers: [], ranks: {} };
-        fused.set(hit.id, entry);
+        entry = { chunkIdx: key, id: key, score: 0, contributions: {}, retrievers: [], ranks: {} };
+        fused.set(key, entry);
       }
       entry.score += contribution;
       entry.contributions[run.retriever] = contribution;
@@ -62,18 +70,17 @@ export function reciprocalRankFusion(runs, { k = RRF_K, topK = 20 } = {}) {
 }
 
 /**
- * Metadata filtering. Filters are applied *before* fusion so that a facet never
- * silently truncates the fused list to nothing.
- * @param {Array<{id:number}>} results
- * @param {Map<number,Object>} chunksById
+ * Metadata filtering over fused results.
+ * @param {Array<{chunkIdx:number}>} results
+ * @param {Array<Object>} chunks  the index chunk array (positional)
  * @param {Object} filters  e.g. { source_type: 'fda_regulatory', product: 'StatStrip Glucose' }
  */
-export function applyFacets(results, chunksById, filters) {
+export function applyFacets(results, chunks, filters) {
   const active = Object.entries(filters || {}).filter(([, v]) => v && v !== 'all');
   if (!active.length) return results;
 
   return results.filter(r => {
-    const chunk = chunksById.get(r.id);
+    const chunk = chunks[r.chunkIdx];
     if (!chunk) return false;
     return active.every(([key, want]) => {
       const got = chunk[key] ?? (chunk.meta ? chunk.meta[key] : undefined);
@@ -89,7 +96,7 @@ export function applyFacets(results, chunksById, filters) {
  * and this is exactly Phase 1 BM25 — with `mode` reporting which path ran, so
  * the UI can tell the truth about how an answer was found.
  */
-export function hybridSearch(query, { bm25, semantic, chunksById, filters, topK = 20 } = {}) {
+export function hybridSearch(query, { bm25, semantic, chunks, filters, topK = 20 } = {}) {
   const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
   if (isDegenerateQuery(query)) {
@@ -116,7 +123,7 @@ export function hybridSearch(query, { bm25, semantic, chunksById, filters, topK 
   if (semanticHits.length) runs.push({ retriever: 'semantic', results: semanticHits, weight: 1.0 });
 
   let fused = reciprocalRankFusion(runs, { topK: topK * 2 });
-  if (filters && chunksById) fused = applyFacets(fused, chunksById, filters);
+  if (filters && chunks) fused = applyFacets(fused, chunks, filters);
   fused = fused.slice(0, topK);
 
   const t1 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
