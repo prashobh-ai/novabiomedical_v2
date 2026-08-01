@@ -3683,3 +3683,119 @@ summary:focus-visible, [tabindex]:focus-visible {
 @media (prefers-contrast: more) {
   :root { --ink-3: #C4CDE6; --ink-4: #A6B0CC; --hairline: rgba(170,190,255,0.34); }
 }
+
+/* ==========================================================================
+   PHASE 2.4 — status chip states + answer subgraph
+   ========================================================================== */
+
+/* ---- Status chip: one element, two states ------------------------------
+   At rest it states what the graph IS; during an answer, what it DID. Same
+   position and styling, so the reader watches one thing change rather than
+   scanning for a second panel. */
+.hero-status {
+  display: inline-flex; align-items: center; flex-wrap: wrap;
+  gap: 0.55rem 0.9rem;
+  transition: border-color var(--dur) var(--ease-soft), background var(--dur) var(--ease-soft);
+}
+.hero-status-text {
+  display: inline-flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.85rem;
+}
+.gs-tag {
+  font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 0.2em 0.6em; border-radius: 999px;
+  color: var(--ink-3, #A2AECD);
+  background: rgba(150, 170, 255, 0.12);
+  border: 1px solid rgba(150, 170, 255, 0.22);
+  white-space: nowrap;
+}
+.gs-tag-live {
+  color: #FF6E9C;
+  background: rgba(255, 46, 107, 0.14);
+  border-color: rgba(255, 46, 107, 0.40);
+}
+.gs-pair {
+  font-size: var(--fs-micro, 0.68rem); color: var(--ink-3, #A2AECD);
+  letter-spacing: 0.01em; white-space: nowrap;
+}
+.gs-pair b {
+  color: var(--ink-1, #F2F5FD); font-weight: 700; font-variant-numeric: tabular-nums;
+  margin-right: 0.28em;
+}
+.hero-status[data-state="live"] { border-color: rgba(255, 46, 107, 0.32); }
+.hero-status[data-state="live"] .gs-pair b { color: #FF6E9C; }
+
+/* ---- Answer card: explanation left, subgraph right --------------------- */
+.graph-value-split { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--sp-6, 2rem); }
+.gv-main { min-width: 0; }
+.gv-viz {
+  align-self: start;
+  padding: var(--sp-3, 0.75rem);
+  background: var(--surface-sunken, rgba(0,0,0,0.22));
+  border: 1px solid var(--hairline, rgba(150,170,255,0.16));
+  border-radius: var(--radius, 14px);
+}
+
+/* ---- Mini subgraph ----------------------------------------------------- */
+.mini-graph { margin: 0; }
+.mini-graph svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+.mg-edge {
+  stroke: rgba(150, 170, 255, 0.42); stroke-width: 1.2;
+  animation: mg-draw var(--dur-slow, 420ms) var(--ease-out, ease-out) both;
+}
+@keyframes mg-draw { from { opacity: 0; } to { opacity: 1; } }
+
+.mg-node-hub { fill: #FF2E6B; }
+.mg-node-hub-halo { fill: rgba(255, 46, 107, 0.18); animation: mg-pulse 3s ease-in-out infinite; }
+@keyframes mg-pulse { 0%, 100% { r: 19; opacity: 0.6; } 50% { r: 23; opacity: 0.25; } }
+
+.mg-node-doc { fill: #5B86FF; }
+.mg-node-reg { fill: #47D6A6; }
+.mg-doc { animation: mg-pop var(--dur, 240ms) var(--ease-out, ease-out) both; }
+@keyframes mg-pop { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: none; } }
+
+.mg-label {
+  fill: var(--ink-3, #A2AECD); font-size: 8.5px; font-weight: 500;
+  font-family: inherit; letter-spacing: 0.01em;
+}
+.mg-hub-label {
+  fill: var(--ink-1, #F2F5FD); font-size: 10.5px; font-weight: 700;
+  font-family: inherit; letter-spacing: -0.005em;
+}
+.mg-doc:hover .mg-label { fill: var(--ink-1, #F2F5FD); }
+.mg-doc circle { transition: r var(--dur, 240ms) var(--ease-out, ease-out); cursor: help; }
+.mg-doc:hover circle { r: 9; }
+
+.mg-caption {
+  display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem;
+  margin-top: var(--sp-2, 0.5rem); padding-top: var(--sp-2, 0.5rem);
+  border-top: 1px solid var(--hairline, rgba(150,170,255,0.16));
+}
+.mg-key {
+  display: inline-flex; align-items: center; gap: 0.3em;
+  font-size: 0.6rem; color: var(--ink-4, #7B87A8); letter-spacing: 0.02em;
+}
+.mg-swatch { width: 0.55em; height: 0.55em; border-radius: 50%; display: inline-block; }
+.mg-swatch-hub { background: #FF2E6B; }
+.mg-swatch-doc { background: #5B86FF; }
+.mg-swatch-reg { background: #47D6A6; }
+
+/* ---- Adaptive ---------------------------------------------------------- */
+@media (max-width: 1000px) {
+  .graph-value-split { grid-template-columns: 1fr; }
+  .gv-viz { max-width: 340px; margin-inline: auto; width: 100%; }
+}
+@media (max-width: 640px) {
+  .hero-status { gap: 0.4rem 0.6rem; }
+  .gs-pair { font-size: 0.62rem; }
+  /* Three stat pairs will not fit a phone alongside the retrieval badge, and
+     the third is the least load-bearing of them. */
+  .hero-status[data-state="live"] .gs-pair:nth-of-type(3) { display: none; }
+}
+@media (min-width: 1600px) {
+  .graph-value-split { grid-template-columns: minmax(0, 1fr) 380px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mg-edge, .mg-doc { animation: none; }
+  .mg-node-hub-halo { animation: none; }
+}
