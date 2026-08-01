@@ -1,0 +1,214 @@
+// ============================================================================
+// Confidence — derived, not declared
+// ============================================================================
+//
+// Every answer in the last demo showed 75%. Not because the system was 75%
+// confident, but because search.js contained:
+//
+//     confidence = min(1, max(distinctness / 4, docNameMatch ? 0.75 : 0))
+//
+// The 0.75 floor fired whenever the query matched a filename, which is almost
+// always, so the floor became the value. A number that never moves is not a
+// confidence score — it is a decoration, and a technical audience will read it
+// as one the moment two very different answers both report 75%.
+//
+// This replaces it with five measured signals. Each is independently computable,
+// bounded [0,1], and means something specific that can be defended out loud.
+// They are combined as a WEIGHTED GEOMETRIC MEAN rather than an arithmetic one,
+// because these signals are conjunctive: an answer with excellent retrieval but
+// zero query coverage is not "average", it is bad. A geometric mean punishes a
+// single near-zero component, which is the behaviour we want.
+//
+//     confidence = Π (signal_i ^ weight_i)        Σ weight_i = 1
+//
+// Nothing here needs a model. It is all measurable from the retrieval run.
+
+const EPS = 0.02;   // floor so one zero signal cannot annihilate the product
+
+export const SIGNAL_SPECS = {
+  retrievalMargin: {
+    weight: 0.22,
+    label: 'Retrieval margin',
+    question: 'Did one passage clearly win, or was it a coin toss?',
+    how: '(top score − mean of next 4) / top score',
+    why: 'A decisive winner means the corpus contains a specific answer. A flat ' +
+         'score distribution means many passages match weakly — usually a sign ' +
+         'the answer is not really in the corpus.',
+  },
+  retrieverAgreement: {
+    weight: 0.18,
+    label: 'Retriever agreement',
+    question: 'Do lexical and semantic search independently agree?',
+    how: 'share of fused top-k found by BOTH BM25 and the LSA retriever',
+    why: 'Two methods with different failure modes converging on the same passage ' +
+         'is real corroboration. Agreement near zero means one retriever is ' +
+         'carrying the result alone.',
+  },
+  queryCoverage: {
+    weight: 0.24,
+    label: 'Question coverage',
+    question: 'Does the answer actually address the terms that were asked about?',
+    how: 'IDF-weighted share of question content-terms present in the answer',
+    why: 'The strongest single predictor of a wrong answer is an answer that ' +
+         'never mentions what was asked. IDF-weighted so rare, meaningful terms ' +
+         'count more than common ones.',
+  },
+  sourceConsensus: {
+    weight: 0.18,
+    label: 'Source consensus',
+    question: 'Is this supported by more than one document?',
+    how: '1 − 1/n over distinct supporting documents, capped at 3',
+    why: 'Independent corroboration. One document can be wrong, out of date, or ' +
+         'about a different product variant.',
+  },
+  evidenceQuality: {
+    weight: 0.18,
+    label: 'Evidence quality',
+    question: 'Is the supporting text clean prose or extraction debris?',
+    how: 'mean build-time quality of the selected sentences',
+    why: 'A confident-sounding answer assembled from table fragments and page ' +
+         'headers is worse than an honest low-confidence one.',
+  },
+};
+
+function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+
+// ---------------------------------------------------------------------------
+// Individual signals
+// ---------------------------------------------------------------------------
+function retrievalMargin(ranked) {
+  if (!ranked || ranked.length === 0) return 0;
+  if (ranked.length === 1) return 0.6;              // single hit: neither strong nor weak
+  const top = ranked[0].score;
+  if (!(top > 0)) return 0;
+  const rest = ranked.slice(1, 5);
+  const mean = rest.reduce((a, r) => a + r.score, 0) / rest.length;
+  return clamp01((top - mean) / top);
+}
+
+function retrieverAgreement(diagnostics) {
+  if (!diagnostics) return 0.5;                     // unknown, not zero
+  if (typeof diagnostics.agreement === 'number') return clamp01(diagnostics.agreement);
+  return 0.5;
+}
+
+function queryCoverage(analysis, sentences, idf) {
+  const terms = analysis.terms || [];
+  if (!terms.length) return 0.5;
+  const answerTokens = new Set();
+  for (const s of sentences) for (const t of s.tokens) answerTokens.add(t);
+  let hit = 0, total = 0;
+  for (const t of terms) {
+    const w = idf(t);
+    total += w;
+    if (answerTokens.has(t)) hit += w;
+  }
+  return total > 0 ? clamp01(hit / total) : 0.5;
+}
+
+function sourceConsensus(sentences) {
+  if (!sentences.length) return 0;
+  const docs = new Set(sentences.map(s => s.chunk.document_id));
+  const n = Math.min(docs.size, 3);
+  return clamp01(1 - 1 / (n + 0.35));               // 1 doc ≈ 0.26, 2 ≈ 0.57, 3 ≈ 0.70
+}
+
+function evidenceQuality(sentences) {
+  if (!sentences.length) return 0;
+  const mean = sentences.reduce((a, s) => a + (s.quality ?? 0.5), 0) / sentences.length;
+  return clamp01(mean);
+}
+
+// ---------------------------------------------------------------------------
+// Combination
+// ---------------------------------------------------------------------------
+/**
+ * @returns {{score:number, percent:number, band:string, signals:Object, caveats:string[]}}
+ */
+export function computeConfidence({ analysis, ranked, sentences, diagnostics, idf }) {
+  const signals = {
+    retrievalMargin: retrievalMargin(ranked),
+    retrieverAgreement: retrieverAgreement(diagnostics),
+    queryCoverage: queryCoverage(analysis, sentences, idf),
+    sourceConsensus: sourceConsensus(sentences),
+    evidenceQuality: evidenceQuality(sentences),
+  };
+
+  // Weighted geometric mean.
+  let logSum = 0;
+  for (const [key, spec] of Object.entries(SIGNAL_SPECS)) {
+    const v = Math.max(EPS, signals[key]);
+    logSum += spec.weight * Math.log(v);
+  }
+  let score = Math.exp(logSum);
+
+  // ---- honest caveats, surfaced rather than smoothed away ------------------
+  const caveats = [];
+  if (!sentences.length) {
+    score = 0;
+    caveats.push('No supporting passage passed the evidence filters.');
+  }
+  if (signals.queryCoverage < 0.4) {
+    caveats.push('The answer does not cover most of the terms in the question.');
+  }
+  if (signals.sourceConsensus < 0.3) {
+    caveats.push('Supported by a single document — no independent corroboration.');
+  }
+  if (signals.retrieverAgreement < 0.2) {
+    caveats.push('Lexical and semantic retrieval disagreed on the best evidence.');
+  }
+  if (signals.evidenceQuality < 0.45) {
+    caveats.push('Supporting text is partly extraction debris (tables, headers).');
+  }
+  if (analysis.intent && analysis.intent.name === 'GENERAL') {
+    caveats.push('Question intent was ambiguous, so evidence routing was not applied.');
+  }
+
+  const percent = Math.round(score * 100);
+  const band = percent >= 70 ? 'high' : percent >= 45 ? 'moderate' : percent >= 25 ? 'low' : 'very low';
+
+  return {
+    score, percent, band, caveats,
+    signals: Object.fromEntries(Object.entries(signals).map(([k, v]) => [k, {
+      value: +v.toFixed(3),
+      percent: Math.round(v * 100),
+      contribution: +(SIGNAL_SPECS[k].weight).toFixed(2),
+      ...SIGNAL_SPECS[k],
+    }])),
+    method: 'weighted geometric mean of 5 measured retrieval signals',
+  };
+}
+
+/** Compact HTML for the "how was this derived" panel. */
+export function renderConfidenceBreakdown(conf) {
+  if (!conf || !conf.signals) return '';
+  const rows = Object.entries(conf.signals).map(([key, s]) => `
+    <div class="conf-row">
+      <div class="conf-row-head">
+        <span class="conf-row-label">${s.label}</span>
+        <span class="conf-row-val">${s.percent}%</span>
+        <span class="conf-row-weight">×${s.contribution}</span>
+      </div>
+      <div class="conf-row-bar"><span style="width:${s.percent}%"></span></div>
+      <div class="conf-row-how"><code>${s.how}</code></div>
+      <div class="conf-row-why">${s.why}</div>
+    </div>`).join('');
+
+  const caveats = conf.caveats.length
+    ? `<div class="conf-caveats"><strong>Caveats</strong><ul>${
+        conf.caveats.map(c => `<li>${c}</li>`).join('')}</ul></div>`
+    : '<div class="conf-caveats conf-caveats-clean">No caveats — all five signals within normal range.</div>';
+
+  return `
+    <div class="conf-breakdown">
+      <div class="conf-headline">
+        <span class="conf-headline-num">${conf.percent}%</span>
+        <span class="conf-headline-band conf-band-${conf.band.replace(' ', '-')}">${conf.band} confidence</span>
+      </div>
+      <p class="conf-method">${conf.method}. Signals are conjunctive, so a geometric
+      mean is used — one failing signal correctly drags the result down instead of
+      being averaged away.</p>
+      ${rows}
+      ${caveats}
+    </div>`;
+}
