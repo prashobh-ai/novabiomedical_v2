@@ -1,254 +1,146 @@
 // =============================================================================
-// Answer composer — extractive answers with inline citation references.
+// Answer composer — query-focused extractive summarisation
+// =============================================================================
 //
-// Architecture (post-cohesion):
-//   1. The cohesive ranked pool is guaranteed to come from 1-2 related docs.
-//   2. We pool ALL sentences across all chunks in that pool and score them
-//      globally, NOT 2-per-chunk. Per-chunk slicing was the source of leaked
-//      noise from neighboring profiles in densely-packed chunks (e.g. a
-//      leadership doc where multiple bios live in one chunk).
-//   3. Stopwords are stripped from query terms BEFORE sentence scoring. Without
-//      this, "the", "is", "of" cause virtually any English sentence to score
-//      positive, drowning out the real signal.
-//   4. There is no fallback to first-sentence-of-chunk. A sentence makes it
-//      into the answer only if it contains at least one non-stopword query
-//      token. Honest "I don't know" beats a fabricated sentence.
-//   5. When a chunk's section_path leaf looks like a named entity (a person's
-//      name, a product name), we prepend it to the sentence. This is what
-//      makes "who founded X" actually answerable — the names live in section
-//      headings, not in the body text.
-// =============================================================================
+// Replaces the previous "top-N sentences by query-term overlap, concatenated"
+// composer. That approach produced the failures seen in demo 2:
+//
+//   Q "clinical significance of measuring lactate"
+//     -> a UDI registration record, because it repeats "lactate" densely
+//   Q "intended use of the StatStrip Glucose meter"
+//     -> the same intended-use sentence four times, lightly reworded
+//   Q "how does hematocrit affect creatinine measurement"
+//     -> opened with a warranty disclaimer
+//
+// The pipeline now is:
+//
+//   NLU  ->  evidence routing  ->  sentence scoring  ->  MMR  ->  assembly
+//
+// with a real confidence figure computed from the retrieval run rather than a
+// constant. Each stage is separately inspectable, which is what makes the
+// answer defensible in front of a technical audience.
 
-import { tokenize, expandAgainstVocab, synonymTokens, isBoilerplateSection } from './search.js?v=5';
+import { analyseQuestion, rerankByIntent } from './nlu.js?v=7';
+import { summarise } from './summarize.js?v=7';
+import { computeConfidence } from './confidence.js?v=7';
 
-const MAX_TOTAL_SENTENCES = 5;
-const MIN_SENTENCE_LEN = 25;
+/**
+ * @param {string} query
+ * @param {Array} ranked      [{chunkIdx, score}]
+ * @param {Array} chunks      index chunk array
+ * @param {Object} cohesion   from cohereByDocument (retained for compatibility)
+ * @param {Object} opts       { semantic, bm25, diagnostics }
+ */
+export function buildAnswer(query, ranked, chunks, cohesion = {}, opts = {}) {
+  const { semantic = null, bm25 = null, diagnostics = null } = opts;
 
-// English stopwords that pollute query-term scoring. Kept minimal — only the
-// highest-frequency function words that appear in nearly every sentence. We
-// don't strip "what", "how", "why" etc. because those still narrow the
-// domain a little when combined with content words.
-const QUERY_STOPWORDS = new Set([
-  'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-  'a', 'an', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'from',
-  'and', 'or', 'but', 'if', 'as', 'so',
-  'this', 'that', 'these', 'those',
-  'it', 'its', 'do', 'does', 'did',
-  'who', 'whom',
-]);
-
-function contentTerms(query) {
-  return tokenize(query).filter(t => !QUERY_STOPWORDS.has(t));
-}
-
-// =============================================================================
-// Sentence splitting & scoring
-// =============================================================================
-function splitSentences(text) {
-  return text
-    .replace(/\n+/g, ' ')
-    .match(/[^.!?]+[.!?]+(?=\s|$)|[^.!?]+$/g) || [];
-}
-
-function scoreSentence(sentence, queryTerms) {
-  const tokens = new Set(tokenize(sentence));
-  let hits = 0;
-  for (const t of queryTerms) if (tokens.has(t)) hits++;
-  if (hits === 0) return 0;
-  // Reward sentences that match more distinct query terms (covers more of the
-  // intent), with a soft length-normalization preference for mid-length.
-  const tokenCount = tokens.size;
-  const lenPenalty = Math.min(1, tokenCount / 18) * Math.min(1, 45 / Math.max(tokenCount, 1));
-  return hits * (0.55 + 0.45 * lenPenalty);
-}
-
-// Section-path leaf heuristic: looks like a person/proper-noun name worth
-// prepending to its associated sentence. Two to four capitalized words, no
-// generic section vocabulary.
-const GENERIC_SECTION_WORDS = /\b(section|chapter|part|overview|introduction|conclusion|appendix|abstract|service|product|company|team|leadership|executive|board|page|brief|summary|history|mission|vision|purpose|growth)\b/i;
-
-function nameLikeLeaf(s) {
-  if (!s || typeof s !== 'string') return null;
-  const trimmed = s.trim();
-  if (trimmed.length < 4 || trimmed.length > 45) return null;
-  if (GENERIC_SECTION_WORDS.test(trimmed)) return null;
-  const words = trimmed.split(/\s+/);
-  if (words.length < 2 || words.length > 4) return null;
-  // Each word must start with a capital letter (allow apostrophes/periods/hyphens for names like O'Brien, Jr., Madhu-Murty)
-  if (!words.every(w => /^[A-Z][A-Za-z'.\-]*$/.test(w))) return null;
-  return trimmed;
-}
-
-// Dedup by content-word signature so near-duplicate sentences don't all show
-function dedupKey(s) {
-  return s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 90);
-}
-
-// =============================================================================
-// Build answer + citation map
-// =============================================================================
-export function buildAnswer(query, ranked, chunks, cohesion = {}) {
-  const isConfident = cohesion.isConfident !== false;
-
-  if (ranked.length === 0) {
+  if (!ranked || !ranked.length) {
     return {
-      answerHtml: "I couldn't find anything in the indexed corpus that matches that question. Try rephrasing, or check the suggested questions above.",
-      citations: [],
-      lowConfidence: true,
+      answerHtml: 'No passage in the corpus matched that question.',
+      citations: [], lowConfidence: true, confidence: null, analysis: null,
     };
   }
 
-  if (!isConfident) {
+  const analysis = analyseQuestion(query);
+
+  const idf = (term) => {
+    if (!bm25 || !bm25.termId || !bm25.idf) return 1;
+    const id = bm25.termId[term];
+    return (id === undefined) ? 2.2 : (bm25.idf[id] ?? 1);
+  };
+
+  // Evidence routing runs here, on the retrieved pool, before summarisation.
+  // Applying it later would be too late — the pool would already be full of
+  // records that match the words but cannot answer the question.
+  const routed = rerankByIntent(ranked, chunks, analysis.intent);
+  const pool = routed.length >= 3 ? routed : ranked;
+
+  const summary = summarise(query, pool, chunks, { analysis, semantic, bm25 });
+
+  // ---- nothing survived routing + quality filters --------------------------
+  if (!summary.sentences.length) {
     const top = chunks[ranked[0].chunkIdx];
+    const conf = computeConfidence({ analysis, ranked: pool, sentences: [], diagnostics, idf });
+    const routedOut = summary.rejected > 0;
     return {
       answerHtml:
-        `I'm not finding a strong match for that question across the indexed corpus. ` +
-        `The closest passage is from <strong>${top.document_name}</strong>, but the relevance signal is weak — ` +
-        `it may not directly answer what you asked. Try a more specific question, or ask about a named entity from the graph.`,
-      citations: [{ num: 1, chunkIdx: ranked[0].chunkIdx, chunk: top, score: ranked[0].score, confidence: 0.3 }],
+        `<p class="answer-none">No passage in the corpus answers this directly.</p>` +
+        `<p class="answer-none-detail">` +
+        (routedOut
+          ? `${summary.rejected} candidate passage${summary.rejected === 1 ? ' was' : 's were'} ` +
+            `found but filtered out — they matched the words in your question without ` +
+            `containing ${analysis.intent.wants || 'a usable answer'}. `
+          : '') +
+        `The nearest related document is <strong>${top.document_name}</strong>.</p>`,
+      citations: [{ num: 1, chunkIdx: ranked[0].chunkIdx, chunk: top, score: ranked[0].score, confidence: 0.2 }],
       lowConfidence: true,
+      confidence: conf,
+      analysis,
+      summary,
     };
   }
 
-  const queryTerms = contentTerms(query);
-  if (queryTerms.length === 0) {
-    return {
-      answerHtml: 'Please ask a more specific question — I need at least one content word to search on.',
-      citations: [],
-      lowConfidence: true,
-    };
-  }
-
-  // Expand each query term with morphological variants present in the corpus,
-  // mirroring what BM25 retrieval already did. Without this, a typo-tolerant
-  // query like "...how found it" retrieves the Founding Story chunk (BM25
-  // saw "found" → "founded") but scores its sentences at 0 here because the
-  // literal "found" token doesn't appear. The wrong chunks would then win
-  // sentence ranking. Vocabulary is sourced from the cohesion stage.
-  const vocab = cohesion.bm25Index?.termId || {};
-  const expandedQueryTerms = [];
-  for (const t of queryTerms) {
-    if (Object.keys(vocab).length > 0) {
-      const variants = expandAgainstVocab(t, vocab);
-      for (const v of variants) expandedQueryTerms.push(v);
-      // Domain synonyms present in the corpus, so an extracted sentence that
-      // uses the manual's terminology still scores against a lay-worded query.
-      for (const s of synonymTokens(t, vocab)) expandedQueryTerms.push(s);
-    } else {
-      expandedQueryTerms.push(t);
-    }
-  }
-  const scoringTerms = expandedQueryTerms.length > queryTerms.length ? expandedQueryTerms : queryTerms;
-
-  // === Global sentence pool across cohesive chunks ===
-  const seen = new Set();
-  const candidates = [];
-
-  for (const r of ranked) {
-    const chunk = chunks[r.chunkIdx];
-    // Skip boilerplate sections — URL lists, press releases, version stamps,
-    // and other meta-content that's keyword-dense but not actually answer
-    // material. Half the corpus chunks are in these sections.
-    if (isBoilerplateSection(chunk.section_path)) continue;
-    const leaf = chunk.section_path?.[chunk.section_path.length - 1];
-    const namePrefix = nameLikeLeaf(leaf);
-    const sentences = splitSentences(chunk.text);
-
-    for (const raw of sentences) {
-      const s = raw.trim();
-      if (s.length < MIN_SENTENCE_LEN) continue;
-      const sScore = scoreSentence(s, scoringTerms);
-      if (sScore === 0) continue;
-
-      const key = dedupKey(s);
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      candidates.push({
-        sentence: s,
-        score: sScore,
-        chunkScore: r.score,
-        chunkIdx: r.chunkIdx,
-        chunk,
-        namePrefix,
-      });
-    }
-  }
-
-  // Rank: sentence-match score primary, originating chunk BM25 score as tiebreaker
-  candidates.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    return b.chunkScore - a.chunkScore;
-  });
-
-  // Fallback path: cohesion correctly identified the doc (filename match) but
-  // the body uses synonyms or rephrasing for the query terms, so no sentence
-  // strictly matches. Example: the doc title names the product but the body
-  // refers to it by a synonym or abbreviation. In that case, take the first sentence of each
-  // top non-boilerplate chunk — we already know the chunk is on-topic.
-  if (candidates.length === 0 && cohesion.docNameMatch) {
-    for (const r of ranked.slice(0, 3)) {
-      const chunk = chunks[r.chunkIdx];
-      if (isBoilerplateSection(chunk.section_path)) continue;
-      const sentences = splitSentences(chunk.text);
-      const first = sentences.find(s => s.trim().length >= MIN_SENTENCE_LEN);
-      if (!first) continue;
-      const trimmed = first.trim();
-      const key = dedupKey(trimmed);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      const leaf = chunk.section_path?.[chunk.section_path.length - 1];
-      candidates.push({
-        sentence: trimmed,
-        score: 0.5,
-        chunkScore: r.score,
-        chunkIdx: r.chunkIdx,
-        chunk,
-        namePrefix: nameLikeLeaf(leaf),
-      });
-    }
-  }
-
-  const selected = candidates.slice(0, MAX_TOTAL_SENTENCES);
-
-  if (selected.length === 0) {
-    const top = chunks[ranked[0].chunkIdx];
-    return {
-      answerHtml:
-        `The closest match is from <strong>${top.document_name}</strong>, but no passage there directly addresses your query terms. ` +
-        `Try rephrasing, or click an entity in the graph to drill in.`,
-      citations: [{ num: 1, chunkIdx: ranked[0].chunkIdx, chunk: top, score: ranked[0].score, confidence: 0.3 }],
-      lowConfidence: true,
-    };
-  }
-
-  // Citation numbering: each unique chunk gets ONE citation number, assigned
-  // in the order it's first referenced by a selected sentence.
+  // ---- citation numbering, in order of first appearance --------------------
   const citationsByChunk = new Map();
   const pieces = [];
-  for (const c of selected) {
-    if (!citationsByChunk.has(c.chunkIdx)) {
-      const num = citationsByChunk.size + 1;
-      citationsByChunk.set(c.chunkIdx, {
-        num,
-        chunkIdx: c.chunkIdx,
-        chunk: c.chunk,
-        score: c.chunkScore,
+
+  for (const s of summary.sentences) {
+    if (!citationsByChunk.has(s.chunkIdx)) {
+      citationsByChunk.set(s.chunkIdx, {
+        num: citationsByChunk.size + 1,
+        chunkIdx: s.chunkIdx,
+        chunk: s.chunk,
+        score: s.final,
+        signals: s.signals,
       });
     }
-    const cite = citationsByChunk.get(c.chunkIdx);
-    const displayText = c.namePrefix ? `${c.namePrefix} — ${c.sentence}` : c.sentence;
-    pieces.push(`${displayText}<sup class="cite-ref" data-cite="${cite.num}">[${cite.num}]</sup>`);
+    const cite = citationsByChunk.get(s.chunkIdx);
+    pieces.push(
+      `<span class="answer-sent">${escapeHtml(s.display)}` +
+      `<sup class="cite-ref" data-cite="${cite.num}">[${cite.num}]</sup></span>`
+    );
   }
 
   const citations = [...citationsByChunk.values()];
-  const maxScore = Math.max(...citations.map(c => c.score), 0.001);
+  const maxScore = Math.max(...citations.map(c => c.score), 1e-6);
   for (const c of citations) c.confidence = c.score / maxScore;
 
+  const confidence = computeConfidence({
+    analysis, ranked: pool, sentences: summary.sentences, diagnostics, idf,
+  });
+
+  // A lead-in line naming what kind of answer this is makes the routing visible
+  // and sets the reader's expectation before the evidence.
+  const lead = analysis.intent.name && analysis.intent.name !== 'GENERAL'
+    ? `<p class="answer-lead">${labelFor(analysis)}</p>`
+    : '';
+
   return {
-    answerHtml: pieces.join(' '),
+    answerHtml: lead + `<p class="answer-body">${pieces.join(' ')}</p>`,
     citations,
-    lowConfidence: false,
+    lowConfidence: confidence.percent < 45,
+    confidence,
+    analysis,
+    summary,
     primarySource: cohesion.dominantDoc || null,
   };
+}
+
+function labelFor(analysis) {
+  const focus = analysis.focus.length
+    ? analysis.focus.slice(0, 2).map(titleCase).join(' · ')
+    : null;
+  const intent = analysis.intent.name.replace(/_/g, ' ').toLowerCase();
+  return `Interpreted as a <strong>${escapeHtml(intent)}</strong> question` +
+         (focus ? ` about <strong>${escapeHtml(focus)}</strong>` : '') +
+         ` — looking for ${escapeHtml(analysis.intent.wants || 'a direct answer')}.`;
+}
+
+function titleCase(s) {
+  return String(s).replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }

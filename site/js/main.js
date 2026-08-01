@@ -11,6 +11,8 @@ import { initExplain, openExplain } from './explain.js?v=5';
 import { matchQuestionBank, QUESTION_BANK } from './questionbank.js?v=5';
 import { loadSemanticIndex } from './semantic.js?v=6';
 import { hybridSearch, explainRanking } from './hybrid.js?v=6';
+import { renderConfidenceBreakdown } from './confidence.js?v=7';
+import { computeHealth, renderHealthDerivation } from './health.js?v=7';
 
 const INDEX_URL = 'data/index.json';
 
@@ -66,12 +68,14 @@ async function boot() {
 
   renderCommandTiles();
   renderMaturityScore();
+  renderHealthExplainer();
   renderKnowledgeRisk();
   renderLineageDemo();
   populateSuggestions();
   setupGalaxy();
   setupCopilot();
   setupSuggestions();
+  setupDerivationToggles();
 
   initLineage({ onChunkClick: id => showChunkDetail(state.chunksById.get(id)) });
   initExplain(state.index);
@@ -273,8 +277,30 @@ function maturityTone(score) {
   return { tone: 'risk', stroke: 'var(--sem-pink)' };
 }
 
+function renderHealthExplainer() {
+  const host = document.getElementById('health-derivation');
+  if (!host || !state.index) return;
+  try {
+    const health = computeHealth(state.index);
+    host.innerHTML = renderHealthDerivation(health);
+    state.health = health;
+  } catch (err) {
+    console.warn('[fabric] health derivation failed:', err.message);
+  }
+}
+
 function renderMaturityScore() {
-  const m = computeMaturity();
+  // Prefer the explainable metrics; fall back to the legacy heuristic only if
+  // the index predates the sentence/date layers.
+  let m;
+  try {
+    const h = computeHealth(state.index);
+    m = { overall: h.overall };
+    for (const met of h.metrics) m[met.key] = met.value;
+    m.__explainable = h;
+  } catch (_) {
+    m = computeMaturity();
+  }
   state.maturity = m;
 
   // Narrative layout — big ring in Section 4. Old top-bar maturity-card
@@ -494,6 +520,23 @@ function setupCopilot() {
   });
 }
 
+function setupDerivationToggles() {
+  const pairs = [['confidence-why-toggle', 'confidence-why'],
+                 ['health-why-toggle', 'health-derivation']];
+  for (const [btnId, panelId] of pairs) {
+    const btn = document.getElementById(btnId);
+    const panel = document.getElementById(panelId);
+    if (!btn || !panel) continue;
+    btn.addEventListener('click', () => {
+      const open = !panel.hidden;
+      panel.hidden = open;
+      btn.setAttribute('aria-expanded', String(!open));
+      btn.textContent = open ? btn.dataset.closed || btn.textContent
+                             : btn.dataset.open || btn.textContent;
+    });
+  }
+}
+
 function setupSuggestions() {
   document.querySelectorAll('#suggestions .chip').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -530,7 +573,24 @@ function retrieve(q) {
     queryTerms: tokenize(q),
     bm25Index: state.bm25,
   });
-  const built = buildAnswer(q, cohesion.ranked, state.chunks, cohesion);
+
+  // Answer from the FULL retrieved pool, not cohesion.ranked.
+  //
+  // cohereByDocument is a Phase 1 mechanism: with a handful of documents it
+  // usefully collapsed results onto the single dominant one. At 1,300+ chunks
+  // across two source systems it collapses 20 retrieved passages to as few as
+  // one — and it does that before intent routing can look at them. For
+  // "clinical significance of measuring lactate" the survivor was a UDI
+  // registration record, so routing then correctly discarded it and the
+  // summariser had nothing left to work with.
+  //
+  // Cohesion is still used for its document-level signals (dominant document,
+  // filename match); it is no longer allowed to gate the evidence pool.
+  const built = buildAnswer(q, rawRanked, state.chunks, cohesion, {
+    semantic: state.semantic,
+    bm25: state.index.bm25,
+    diagnostics: hybrid.diagnostics,
+  });
   return {
     ranked: cohesion.ranked,
     cohesion,
@@ -593,7 +653,9 @@ async function ask(question, opts = {}) {
   const trace = state.graph.highlightTrace(citations.map(c => c.chunk.id));
 
   state.lastQuery = question;
-  state.lastResult = { ranked, citations, answerHtml, trace, cohesion, lowConfidence };
+  state.lastResult = { ranked, citations, answerHtml, trace, cohesion, lowConfidence,
+                       confidence: result.confidence, analysis: result.analysis,
+                       summary: result.summary };
 
   populateAnswerStage(question, answerHtml, citations, ranked, trace, cohesion);
   if (!silent) appendAssistantMessage(question, answerHtml, citations, ranked, trace);
@@ -660,8 +722,11 @@ function populateAnswerStage(question, answerHtml, citations, ranked, trace, coh
   }
 
   // Metrics row
-  const conf = cohesion?.confidence != null
-    ? Math.round(cohesion.confidence * 100)
+  // Derived confidence from the retrieval run. cohesion.confidence is no longer
+  // used: it contained a `docNameMatch ? 0.75` floor that fired on nearly every
+  // query, which is why every answer in the last demo reported exactly 75%.
+  const confObj = state.lastResult?.confidence || null;
+  const conf = confObj ? confObj.percent
     : (citations[0]?.confidence ? Math.round(citations[0].confidence * 100) : 0);
   const confFillEl = document.getElementById('answer-stage-conf-fill');
   const confValEl = document.getElementById('answer-stage-conf-val');
@@ -671,7 +736,15 @@ function populateAnswerStage(question, answerHtml, citations, ranked, trace, coh
     confFillEl.style.width = '0%';
     requestAnimationFrame(() => { confFillEl.style.width = `${conf}%`; });
   }
-  if (confValEl) confValEl.textContent = `${conf}%`;
+  if (confValEl) {
+    confValEl.textContent = `${conf}%`;
+    confValEl.dataset.band = confObj ? confObj.band : '';
+  }
+  const confWhy = document.getElementById('confidence-why');
+  if (confWhy && confObj) {
+    confWhy.innerHTML = renderConfidenceBreakdown(confObj);
+    confWhy.hidden = false;
+  }
   if (srcEl) srcEl.textContent = citations.length;
   if (pathsEl) pathsEl.textContent = Math.max(1, trace.edgeCount);
 }
