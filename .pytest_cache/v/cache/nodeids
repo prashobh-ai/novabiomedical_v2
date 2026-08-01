@@ -1,0 +1,16 @@
+[
+  "tests/test_pipeline.py::test_bm25_index_shape",
+  "tests/test_pipeline.py::test_chunker_preserves_breadcrumbs",
+  "tests/test_pipeline.py::test_connector_registry_skips_missing_sources",
+  "tests/test_pipeline.py::test_docx_parser_handles_none_style_and_tables",
+  "tests/test_pipeline.py::test_entity_extraction_picks_up_proper_nouns",
+  "tests/test_pipeline.py::test_fda_connector_verbalises_structured_records",
+  "tests/test_pipeline.py::test_full_pipeline_emits_valid_index",
+  "tests/test_pipeline.py::test_graph_builds_typed_cross_source_edges",
+  "tests/test_pipeline.py::test_markdown_parser_extracts_headings",
+  "tests/test_pipeline.py::test_relationships_built_from_real_corpus",
+  "tests/test_pipeline.py::test_semantic_handles_out_of_vocabulary_query",
+  "tests/test_pipeline.py::test_semantic_index_round_trips_a_query",
+  "tests/test_pipeline.py::test_text_parser_handles_caps_headings",
+  "tests/test_pipeline.py::test_tokenize_lowercases_and_filters"
+]
