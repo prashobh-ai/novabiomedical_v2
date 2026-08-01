@@ -1,0 +1,136 @@
+# =============================================================================
+# Retrieval gold set — Knowledge Fabric
+# =============================================================================
+#
+# Each case declares what a *correct* retrieval looks like, independent of how
+# the answer is phrased. We grade retrieval, not generation: if the right
+# evidence never surfaces, no amount of answer polish can save the response.
+#
+# relevant_any:  at least one retrieved chunk must satisfy one of these matchers
+# relevant_all:  every listed matcher must be satisfied somewhere in the top-k
+#                (used for cross-source questions — the whole point of a fabric)
+#
+# Matchers are substring/field tests against chunk fields and metadata, so the
+# set stays valid as chunk ids shift between builds.
+
+cases:
+  # --------------------------------------------------------------- lexical
+  - id: lex-001
+    question: "What is the StatStrip glucose measurement range?"
+    category: lexical
+    relevant_any:
+      - text_contains: ["mg/dL"]
+      - meta.product: "StatStrip Glucose"
+
+  - id: lex-002
+    question: "K232075"
+    category: lexical
+    notes: "Exact identifier lookup — BM25 should nail this."
+    relevant_any:
+      - meta.k_number: "K232075"
+
+  - id: lex-003
+    question: "quality control testing frequency"
+    category: lexical
+    relevant_any:
+      - text_contains: ["quality control"]
+      - text_contains: ["control solution"]
+
+  # --------------------------------------------------------------- semantic
+  # These are the vocabulary-mismatch cases. The user's words do not appear in
+  # the source; only a semantic retriever bridges them.
+  - id: sem-001
+    question: "kidney function testing"
+    category: semantic
+    notes: "Corpus says 'creatinine' and 'eGFR', never 'kidney function'."
+    relevant_any:
+      - text_contains: ["creatinine"]
+      - text_contains: ["eGFR"]
+      - text_contains: ["renal"]
+
+  - id: sem-002
+    question: "how sick patients in intensive care are tested"
+    category: semantic
+    notes: "Corpus says 'critically ill'."
+    relevant_any:
+      - text_contains: ["critically ill"]
+      - text_contains: ["critical care"]
+
+  - id: sem-003
+    question: "device safety problems reported to regulators"
+    category: semantic
+    relevant_any:
+      - meta.record_type: "recall"
+
+  - id: sem-004
+    question: "cell culture monitoring in bioprocessing"
+    category: semantic
+    relevant_any:
+      - text_contains: ["BioProfile"]
+      - text_contains: ["cell culture"]
+      - text_contains: ["FLEX"]
+
+  # --------------------------------------------------------------- regulatory
+  - id: reg-001
+    question: "Which FDA product code covers blood gas electrodes?"
+    category: regulatory
+    relevant_any:
+      - meta.product_code: "CHL"
+      - text_contains: ["CHL"]
+
+  - id: reg-002
+    question: "What software defects caused a recall?"
+    category: regulatory
+    relevant_any:
+      - meta.root_cause: "Software design"
+      - text_contains: ["software"]
+
+  - id: reg-003
+    question: "When was the Allegro UACR assay cleared?"
+    category: regulatory
+    relevant_any:
+      - text_contains: ["UACR"]
+
+  - id: reg-004
+    question: "Nova Max Creat eGFR clearance"
+    category: regulatory
+    relevant_any:
+      - meta.k_number: "K251281"
+      - text_contains: ["eGFR"]
+
+  # --------------------------------------------------------------- cross-source
+  # The fabric test. A correct answer requires evidence from BOTH the document
+  # corpus and the regulatory corpus. Neither source can satisfy these alone.
+  - id: xsrc-001
+    question: "StatStrip Glucose clearance and product documentation"
+    category: cross_source
+    relevant_all:
+      - source_type: "document"
+      - source_type: "fda_regulatory"
+
+  - id: xsrc-002
+    question: "Stat Profile Prime Plus analyzer regulatory status and manual"
+    category: cross_source
+    relevant_all:
+      - source_type: "fda_regulatory"
+      - text_contains: ["Prime Plus"]
+
+  - id: xsrc-003
+    question: "creatinine testing device clearance and instructions"
+    category: cross_source
+    relevant_all:
+      - source_type: "document"
+      - source_type: "fda_regulatory"
+
+  # --------------------------------------------------------------- robustness
+  - id: rob-001
+    question: "asdfghjkl qwertyuiop"
+    category: robustness
+    notes: "Pure nonsense — must return few or no results, and must not crash."
+    expect_empty_or_low: true
+
+  - id: rob-002
+    question: "the"
+    category: robustness
+    notes: "Stopword-only query."
+    expect_empty_or_low: true
