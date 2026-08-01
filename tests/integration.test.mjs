@@ -200,7 +200,8 @@ check('exact identifier lookup still works (lexical path intact)', () => {
 // Phase 2.1 — answer quality, confidence derivation, health explainability
 // =============================================================================
 const { analyseQuestion } = await import(path.join(SITE, 'js/nlu.js'));
-const { computeHealth } = await import(path.join(SITE, 'js/health.js'));
+const { computeHealth, renderHealthDerivation } = await import(path.join(SITE, 'js/health.js'));
+const { renderConfidenceBreakdown } = await import(path.join(SITE, 'js/confidence.js'));
 
 console.log('\n=== NLU ROUTING ===');
 
@@ -311,6 +312,113 @@ check('document dates carry provenance', () => {
     assert(typeof d.date_confidence === 'number', `${d.name} has no date confidence`);
     assert(d.date_explanation, `${d.name} has no date explanation`);
   }
+});
+
+
+// =============================================================================
+// Phase 2.2 — reply-style NLG, branding, business-first disclosure
+// =============================================================================
+const { cleanSentence } = await import(path.join(SITE, 'js/compose.js'));
+const { BRAND } = await import(path.join(SITE, 'js/brand.js'));
+const { healthNarrative } = await import(path.join(SITE, 'js/health.js'));
+
+console.log('\n=== ANSWER READS AS A REPLY ===');
+
+check('answers open with a framing line, not a raw sentence', () => {
+  const r = ask('What is the intended use of the StatStrip Glucose meter?');
+  assert(/class="answer-opener"/.test(r.answerHtml), 'no opener element');
+  const opener = r.answerHtml.match(/class="answer-opener">([^<]+)</)?.[1] || '';
+  assert(opener.length > 20 && opener.trim().endsWith(':'), `bad opener: "${opener}"`);
+  assert(/^[A-Z]/.test(opener.trim()), `opener not capitalised: "${opener}"`);
+});
+
+check('supporting facts are joined by discourse markers', () => {
+  const r = ask('How does hematocrit affect creatinine measurement?');
+  if ((r.summary?.sentences || []).length < 2) return;
+  assert(/class="answer-marker"/.test(r.answerHtml),
+    'multi-sentence answer has no connective markers');
+});
+
+check('document furniture is stripped from displayed sentences', () => {
+  assert(cleanSentence('AppendixMethodology The Lactate measurement is based on X.')
+    .startsWith('The Lactate'), 'fused heading survived');
+  assert(cleanSentence('1-4 StatSensor Creatinine Meter 1.4 The Sample is whole blood.')
+    .startsWith('The Sample'), 'section numbering survived');
+  // ...but a real subject must never be stripped
+  const keep = cleanSentence('Accuracy of the Lactate Plus Meter system was assayed at sites.');
+  assert(keep.startsWith('Accuracy of'), `over-stripped: "${keep}"`);
+});
+
+check('no answer begins with a dangling preposition', () => {
+  for (const q of ['What is the clinical significance of measuring lactate?',
+                   'What substances interfere with glucose results?',
+                   'How does hematocrit affect creatinine measurement?']) {
+    const body = String(ask(q).answerHtml).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    assert(!/:\s+(Of|For|In|To|By|With|At|On)\s/.test(body),
+      `dangling preposition after opener in: ${q}`);
+  }
+});
+
+check('a no-answer response is phrased as a reply, not an error', () => {
+  const r = ask('zzzz qqqq wwww vvvv');
+  const text = String(r.answerHtml).replace(/<[^>]+>/g, ' ');
+  assert(!/undefined|null|NaN|\[object/.test(text), `placeholder leaked: ${text.slice(0, 90)}`);
+});
+
+console.log('\n=== BRANDING & ATTRIBUTION ===');
+
+check('build is attributed to the builder, delivered for the client', () => {
+  assert(BRAND.footerBrand.includes('QualiZeal'), 'builder missing from footer');
+  assert(BRAND.footerBrand.includes('Nova Biomedical'), 'client missing from footer');
+  assert(!/Nova Biomedical AI-CoE/i.test(BRAND.footerBrand),
+    'footer still credits the client as the builder');
+});
+
+check('re-branding needs one object, not a template edit', () => {
+  const html = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8');
+  assert(!/Nova Biomedical AI-CoE/i.test(html), 'stale attribution hard-coded in markup');
+  assert(/data-brand=/.test(html), 'markup does not use the brand binding');
+});
+
+console.log('\n=== BUSINESS-FIRST DISCLOSURE ===');
+
+check('every health metric has a plain-language label and rationale', () => {
+  const h = computeHealth(idx);
+  for (const m of h.metrics) {
+    assert(m.plainLabel, `${m.key} has no plain label`);
+    assert(m.plainWhat && m.plainRisk, `${m.key} has no business framing`);
+    assert(!/^(Extraction quality|Provenance|Connectivity)$/.test(m.plainLabel),
+      `${m.key} still shows a technical label`);
+  }
+});
+
+check('maturity breakdown never renders undefined', () => {
+  const h = computeHealth(idx);
+  for (const m of h.metrics) {
+    assert(typeof m.value === 'number' && !Number.isNaN(m.value),
+      `${m.key} value is ${m.value}`);
+    assert(m.plainLabel !== undefined, `${m.key} label is undefined`);
+  }
+  const n = healthNarrative(h);
+  assert(!/undefined/.test(n.headline + n.weakest + n.strongest), 'undefined in narrative');
+});
+
+check('formulas are preserved but nested behind a disclosure', () => {
+  const html = renderHealthDerivation(computeHealth(idx));
+  assert(/<details class="tech-detail">/.test(html), 'no progressive disclosure');
+  assert(/<code>/.test(html), 'formulas were removed rather than nested');
+  const beforeFirstDetails = html.slice(0, html.indexOf('<details'));
+  assert(!/<code>/.test(beforeFirstDetails), 'formula shown before plain language');
+});
+
+check('confidence panel leads with a plain verdict', () => {
+  const c = ask('What is the intended use of the StatStrip Glucose meter?').confidence;
+  const html = renderConfidenceBreakdown(c);
+  assert(/class="conf-verdict"/.test(html), 'no plain verdict');
+  for (const s of Object.values(c.signals)) {
+    assert(s.plainLabel && s.plainWhy, 'signal missing plain-language framing');
+  }
+  assert(/<details class="tech-detail">/.test(html), 'formulas not nested');
 });
 
 console.log('\n' + '='.repeat(62));
