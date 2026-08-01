@@ -272,17 +272,7 @@
       <!-- Big composite score on left -->
       <div class="health-score-card">
         <span class="health-score-eyebrow">Overall readiness</span>
-        <div class="health-score-display">
-          <svg class="health-ring" viewBox="0 0 120 120" aria-hidden="true">
-            <circle class="ring-track-big" cx="60" cy="60" r="52" />
-            <circle class="ring-fill-big" cx="60" cy="60" r="52" id="health-ring-fill" />
-          </svg>
-          <div class="health-score-value">
-            <span class="health-score-num" id="health-score-num">—</span>
-            <span class="health-score-suffix">/100</span>
-          </div>
-        </div>
-        <div class="health-breakdown" id="health-breakdown"></div>
+        <div class="health-rings-host" id="health-rings"></div>
       </div>
 
       <!-- Risk cards on right -->
@@ -418,7 +408,7 @@
     <span id="risk-meta"></span>
   </div>
 
-  <script type="module" src="js/main.js?v=10"></script>
+  <script type="module" src="js/main.js?v=11"></script>
 
   <script>
     // Smooth scroll for in-page nav links
