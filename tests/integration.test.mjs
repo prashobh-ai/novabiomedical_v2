@@ -421,6 +421,113 @@ check('confidence panel leads with a plain verdict', () => {
   assert(/<details class="tech-detail">/.test(html), 'formulas not nested');
 });
 
+
+// =============================================================================
+// Phase 2.3 — brand hierarchy, graph value, adaptive UI
+// =============================================================================
+const { explainGraphContribution, renderGraphContribution, graphPurposeCopy } =
+  await import(path.join(SITE, 'js/graphvalue.js'));
+
+console.log('\n=== BRAND HIERARCHY ===');
+
+check('client name is a pure placeholder', () => {
+  const css = fs.readFileSync(path.join(SITE, 'styles/main.css'), 'utf8');
+  assert(!/Nova\s*Biomedical/i.test(css),
+    'a style rule is keyed to the client name — renaming would change the design');
+  const html = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8');
+  assert(/class="qz-client"\s+data-brand="clientName"/.test(html),
+    'client name is not bound through the brand layer');
+});
+
+check('hierarchy is client > product > demonstrator', () => {
+  const html = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8');
+  const c = html.indexOf('qz-client'), p = html.indexOf('qz-product'), d = html.indexOf('qz-demoby');
+  assert(c > -1 && p > -1 && d > -1, 'lockup elements missing');
+  assert(c < p && p < d, `wrong order in DOM: client=${c} product=${p} demoBy=${d}`);
+});
+
+check('no MVP/prototype banner in the hero', () => {
+  const html = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8');
+  assert(!/hero-eyebrow/.test(html), 'hero eyebrow banner is still present');
+});
+
+check('footer does not overclaim delivery, and drops the answer-level claim', () => {
+  assert(!/\bdelivered for\b/i.test(BRAND.footerBrand),
+    'footer still claims delivery at demonstration stage');
+  assert(/demonstration/i.test(BRAND.footerBrand), 'footer does not state demo stage');
+  assert(!/paraphras/i.test(BRAND.footerBrand + BRAND.footerNote),
+    'the "nothing paraphrased" claim still sits in the footer');
+  assert(/paraphras/i.test(BRAND.answerAssurance),
+    'the assurance was removed rather than relocated to the answer');
+});
+
+console.log('\n=== GRAPH VALUE IS ARTICULATED ===');
+
+check('graph has a standing purpose statement with real numbers', () => {
+  const p = graphPurposeCopy(idx);
+  assert(p.headline && p.body, 'no purpose copy');
+  assert(p.stat > 0, 'bridging-concept count is zero');
+  assert(!/undefined|NaN/.test(p.body), 'placeholder leaked into purpose copy');
+});
+
+check('an answer explains what the graph contributed', () => {
+  const r = ask('How does hematocrit affect creatinine measurement?');
+  const c = explainGraphContribution(r.citations, idx, r.analysis);
+  assert(c, 'no contribution computed for a multi-document answer');
+  assert(c.documentCount >= 2, 'contribution reported for a single document');
+  assert(c.bridges.length > 0, 'no bridging concepts identified');
+  const html = renderGraphContribution(c);
+  assert(/keyword|share/i.test(html), 'the story never contrasts with keyword search');
+});
+
+check('bridging concepts are specific, not corpus-wide filler', () => {
+  const r = ask('What substances interfere with glucose results?');
+  const c = explainGraphContribution(r.citations, idx, r.analysis);
+  if (!c) return;
+  const top = c.bridges[0];
+  const totalDocs = idx.documents.length;
+  assert(top.onTopic || top.reach < totalDocs * 0.15,
+    `top bridge "${top.name}" spans ${top.reach}/${totalDocs} documents — too generic to explain anything`);
+});
+
+check('single-document answers claim no graph contribution', () => {
+  const fake = [{ chunk: idx.chunks[0] }];
+  assert(explainGraphContribution(fake, idx, null) === null,
+    'claimed a graph contribution with only one document');
+});
+
+console.log('\n=== ADAPTIVE & ACCESSIBLE ===');
+
+check('layout adapts across phone, desktop, TV and print', () => {
+  const css = fs.readFileSync(path.join(SITE, 'styles/main.css'), 'utf8');
+  for (const q of ['max-width: 640px', 'min-width: 1600px', 'min-width: 2200px',
+                   'orientation: landscape', '@media print']) {
+    assert(css.includes(q), `no rules for ${q}`);
+  }
+});
+
+check('type and spacing scale fluidly rather than by breakpoint', () => {
+  const css = fs.readFileSync(path.join(SITE, 'styles/main.css'), 'utf8');
+  assert((css.match(/clamp\(/g) || []).length >= 8, 'type scale is not fluid');
+  assert(/--measure:/.test(css), 'no reading measure defined — prose will over-extend');
+});
+
+check('motion and contrast preferences are honoured', () => {
+  const css = fs.readFileSync(path.join(SITE, 'styles/main.css'), 'utf8');
+  assert(css.includes('prefers-reduced-motion'), 'no reduced-motion support');
+  assert(css.includes('prefers-contrast'), 'no high-contrast support');
+  assert(/:focus-visible/.test(css), 'no visible focus styling');
+});
+
+console.log('\n=== HEATMAP DEPTH ===');
+
+check('heatmap collapses instead of rendering every document', () => {
+  const js = fs.readFileSync(path.join(SITE, 'js/insights.js'), 'utf8');
+  assert(/hm-row-extra/.test(js), 'no collapsed rows');
+  assert(/hm-toggle/.test(js), 'no expand control');
+  assert(/aria-expanded/.test(js), 'expand control is not accessible');
+});
+
 console.log('\n' + '='.repeat(62));
 console.log(`  ${passed} passed, ${failed} failed`);
 console.log('='.repeat(62));
