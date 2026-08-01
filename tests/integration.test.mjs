@@ -425,7 +425,7 @@ check('confidence panel leads with a plain verdict', () => {
 // =============================================================================
 // Phase 2.3 — brand hierarchy, graph value, adaptive UI
 // =============================================================================
-const { explainGraphContribution, renderGraphContribution, graphPurposeCopy } =
+const { explainGraphContribution, renderGraphContribution, renderMiniGraph, graphPurposeCopy } =
   await import(path.join(SITE, 'js/graphvalue.js'));
 
 console.log('\n=== BRAND HIERARCHY ===');
@@ -526,6 +526,77 @@ check('heatmap collapses instead of rendering every document', () => {
   assert(/hm-row-extra/.test(js), 'no collapsed rows');
   assert(/hm-toggle/.test(js), 'no expand control');
   assert(/aria-expanded/.test(js), 'expand control is not accessible');
+});
+
+console.log('\n=== STATUS CHIP & SUBGRAPH ===');
+
+check('the floating purpose overlay is gone', () => {
+  const html = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8');
+  assert(!/graph-purpose/.test(html),
+    'the overlay panel still sits on top of the hero');
+});
+
+check('one chip carries both graph states', () => {
+  const html = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8');
+  assert(/id="galaxy-status-wrap"[^>]*data-state=/.test(html),
+    'status chip has no state attribute');
+  const js = fs.readFileSync(path.join(SITE, 'js/main.js'), 'utf8');
+  assert(/setIdleGalaxyStatus/.test(js), 'no idle state for the chip');
+  assert(/data-state=|dataset\.state/.test(js), 'chip state is never switched');
+});
+
+check('idle chip states what the graph is, with real numbers', () => {
+  const p = graphPurposeCopy(idx);
+  assert(p.stat > 0 && p.stat2 >= 0, 'graph stats are empty');
+  assert(Number.isFinite(p.stat), 'bridging-concept count is not a number');
+});
+
+check('the answer card renders a subgraph', () => {
+  const r = ask('What is the intended use of the StatStrip Glucose meter?');
+  const c = explainGraphContribution(r.citations, idx, r.analysis);
+  assert(c, 'no contribution to draw');
+  const svg = renderMiniGraph(c, idx);
+  assert(/<svg/.test(svg), 'no svg emitted');
+  assert(/mg-edge/.test(svg) && /mg-doc/.test(svg), 'subgraph has no edges or nodes');
+  assert(/role="img"/.test(svg) && /aria-label=/.test(svg), 'subgraph is not accessible');
+});
+
+check('the diagram names the same concept as the prose', () => {
+  // A card whose sentence says "Creatinine" beside a picture labelled
+  // "Hemoglobin" is worse than no picture at all.
+  for (const q of ['What is the intended use of the StatStrip Glucose meter?',
+                   'How does hematocrit affect creatinine measurement?',
+                   'What substances interfere with glucose results?']) {
+    const r = ask(q);
+    const c = explainGraphContribution(r.citations, idx, r.analysis);
+    if (!c) continue;
+    const html = renderGraphContribution(c, idx);
+    const hub = (html.match(/mg-hub-label">\s*([^<]+)/) || [])[1]?.trim();
+    assert(hub === c.primary.name,
+      `diagram shows "${hub}" but the analysis named "${c.primary.name}" for: ${q}`);
+    assert(html.includes(`<strong>${c.primary.name}</strong>`),
+      `prose does not name "${c.primary.name}" for: ${q}`);
+  }
+});
+
+check('the card is a two-column layout that collapses on narrow screens', () => {
+  const r = ask('How does hematocrit affect creatinine measurement?');
+  const c = explainGraphContribution(r.citations, idx, r.analysis);
+  const html = renderGraphContribution(c, idx);
+  assert(/graph-value-split/.test(html), 'card is not split');
+  assert(/gv-viz/.test(html), 'no visualisation column');
+  const css = fs.readFileSync(path.join(SITE, 'styles/main.css'), 'utf8');
+  assert(/graph-value-split\s*{\s*grid-template-columns:\s*1fr/.test(
+    css.replace(/\s+/g, ' ').match(/@media \(max-width: 1000px\)[^}]*}[^}]*}/)?.[0] || ''
+  ) || /max-width: 1000px/.test(css), 'split layout does not collapse on narrow screens');
+});
+
+check('rendering without an index degrades to text only', () => {
+  const r = ask('How does hematocrit affect creatinine measurement?');
+  const c = explainGraphContribution(r.citations, idx, r.analysis);
+  const html = renderGraphContribution(c);          // no index passed
+  assert(!/\<svg/.test(html), 'drew a subgraph with no index');
+  assert(/gv-lead/.test(html), 'lost the explanation too');
 });
 
 console.log('\n' + '='.repeat(62));
