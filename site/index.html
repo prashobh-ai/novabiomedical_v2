@@ -43,8 +43,8 @@
       <span class="qz-wordmark-text">Nova<span>Biomedical</span></span>
     </a>
     <div class="qz-context">
-      <span class="qz-context-eyebrow">Live Demo</span>
-      <span class="qz-context-title">Knowledge Fabric</span>
+      <span class="qz-context-title" data-brand="product">Knowledge Fabric</span>
+      <span class="qz-context-eyebrow" data-brand="navContext">Built by QualiZeal AI-CoE</span>
     </div>
     <nav class="qz-nav">
       <a href="#hero" class="nav-scroll">Galaxy</a>
@@ -75,9 +75,9 @@
        ============================================================ -->
   <section class="story-section hero-section" id="hero">
     <div class="hero-overlay">
-      <div class="hero-eyebrow">Knowledge Fabric · Live Demo</div>
-      <h1 class="hero-title">Enterprise Knowledge<br/><em>Intelligence</em></h1>
-      <p class="hero-sub">Ask anything about your organization. Get answers grounded in every document, every page, every paragraph — with the source lineage to prove it.</p>
+      <span class="hero-eyebrow" data-brand="heroEyebrow"></span>
+      <h1 class="hero-title">Every answer,<br/><em>traced to its source.</em></h1>
+      <p class="hero-sub">Your documentation already holds the answers. Knowledge Fabric finds them, shows the page each one came from, and tells you how certain it is — so your teams can act on what they read instead of hunting for it.</p>
 
       <form class="hero-composer" id="composer-form">
         <input id="composer-input" type="text" placeholder="Ask Knowledge Fabric…" autocomplete="off" spellcheck="false" />
@@ -159,7 +159,7 @@
             <span class="meta-item meta-item-action">
               <button class="why-btn" id="confidence-why-toggle" type="button"
                       aria-expanded="false" aria-controls="confidence-why">
-                How was this scored?
+                Why this confidence?
               </button>
             </span>
           </div>
@@ -250,14 +250,15 @@
   <section class="story-section health-section" id="section-health">
     <div class="story-head">
       <span class="story-eyebrow">Section 04 · Knowledge Health</span>
-      <h2 class="story-title">Where your organization's knowledge is fragile.</h2>
-      <p class="story-sub">Beyond Q&amp;A: turn your document corpus into a measurable business signal. Knowledge that lives in one document, with one owner, with no recent updates, is a continuity risk.</p>
+      <h2 class="story-title">Find the gaps before they cost you.</h2>
+      <p class="story-sub">Knowledge that sits in a single document, that nobody can date, or that no other document references is a risk you cannot see on a shared drive. Knowledge Fabric measures that risk directly from your files — and tells you which gap to close first.</p>
+      <div class="health-verdict" id="health-verdict"></div>
     </div>
 
     <div class="health-stage">
       <!-- Big composite score on left -->
       <div class="health-score-card">
-        <span class="health-score-eyebrow">Knowledge Fabric Maturity</span>
+        <span class="health-score-eyebrow">Overall readiness</span>
         <div class="health-score-display">
           <svg class="health-ring" viewBox="0 0 120 120" aria-hidden="true">
             <circle class="ring-track-big" cx="60" cy="60" r="52" />
@@ -277,7 +278,7 @@
       <div class="health-derive-wrap">
         <button class="why-btn why-btn-wide" id="health-why-toggle" type="button"
                 aria-expanded="false" aria-controls="health-derivation">
-          How are these numbers derived?
+          How are these measured?
         </button>
         <div class="derivation-panel" id="health-derivation" hidden></div>
       </div>
@@ -344,8 +345,8 @@
        ============================================================ -->
   <footer class="story-footer">
     <div class="footer-inner">
-      <span class="footer-brand">Knowledge Fabric · A Nova Biomedical AI-CoE prototype</span>
-      <span class="footer-meta" id="footer-meta">computed live · zero LLM rewriting · 100% verbatim citation</span>
+      <span class="footer-brand" data-brand="footerBrand">Knowledge Fabric</span>
+      <span class="footer-meta" id="footer-meta" data-brand="footerNote"></span>
     </div>
   </footer>
 
@@ -404,7 +405,7 @@
     <span id="risk-meta"></span>
   </div>
 
-  <script type="module" src="js/main.js?v=7"></script>
+  <script type="module" src="js/main.js?v=8"></script>
 
   <script>
     // Smooth scroll for in-page nav links
