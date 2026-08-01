@@ -201,6 +201,7 @@ check('exact identifier lookup still works (lexical path intact)', () => {
 // =============================================================================
 const { analyseQuestion } = await import(path.join(SITE, 'js/nlu.js'));
 const { computeHealth, renderHealthDerivation } = await import(path.join(SITE, 'js/health.js'));
+const ringsMod = await import(path.join(SITE, 'js/rings.js'));
 const { renderConfidenceBreakdown } = await import(path.join(SITE, 'js/confidence.js'));
 
 console.log('\n=== NLU ROUTING ===');
@@ -597,6 +598,116 @@ check('rendering without an index degrades to text only', () => {
   const html = renderGraphContribution(c);          // no index passed
   assert(!/\<svg/.test(html), 'drew a subgraph with no index');
   assert(/gv-lead/.test(html), 'lost the explanation too');
+});
+
+console.log('\n=== MOBILE: THE GRAPH IS THE SHOWPIECE ===');
+
+// Reviewers open the link on a phone during a call. Whatever the phone shows
+// IS the demo, so these are product requirements, not polish.
+const CSS = fs.readFileSync(path.join(SITE, 'styles/main.css'), 'utf8');
+
+function mobileCss() {
+  const out = [];
+  const re = /@media([^{]+)\{/g;
+  let m;
+  while ((m = re.exec(CSS))) {
+    if (!/max-width:\s*(9\d\d|[0-8]\d\d)px/.test(m[1])) continue;
+    let depth = 1, i = re.lastIndex;
+    while (depth > 0 && i < CSS.length) {
+      if (CSS[i] === '{') depth++; else if (CSS[i] === '}') depth--;
+      i++;
+    }
+    out.push(CSS.slice(re.lastIndex, i - 1));
+  }
+  return out.join('\n');
+}
+function declIn(scope, selector, prop) {
+  // Selector must end at the brace — ".hero-galaxy" must not match
+  // ".hero-galaxy::after", whose position:absolute is correct and unrelated.
+  const re = new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+    '\\s*(?:,[^{]*)?\\{([^}]*)\\}', 'g');
+  let m, last = null;
+  while ((m = re.exec(scope))) {
+    const p = new RegExp(prop + '\\s*:\\s*([^;]+)').exec(m[1]);
+    if (p) last = p[1].trim();
+  }
+  return last;
+}
+
+check('on phones the graph leaves the background and gets its own stage', () => {
+  const mob = mobileCss();
+  const pos = declIn(mob, '.hero-galaxy', 'position');
+  assert(pos && /relative|static/.test(pos),
+    `graph is still position:${pos} on mobile — it stays behind the copy as wallpaper`);
+  const h = declIn(mob, '.hero-galaxy', 'height');
+  assert(h && /vh|px|clamp/.test(h), 'graph has no explicit height on mobile — it collapses');
+});
+
+check('hero copy stops overlaying the graph on phones', () => {
+  const mob = mobileCss();
+  const pos = declIn(mob, '.hero-overlay', 'position');
+  assert(pos && /static/.test(pos),
+    `copy is still position:${pos} — it sits on top of the graph`);
+});
+
+check('hero stacks in a defined order on phones', () => {
+  const mob = mobileCss();
+  assert(declIn(mob, '.hero', 'flex-direction') === 'column', 'hero does not stack');
+  assert(declIn(mob, '.hero-overlay', 'order') === '1', 'copy is not ordered first');
+  assert(declIn(mob, '.hero-galaxy', 'order') === '2', 'graph is not ordered second');
+});
+
+check('the graph refits when the viewport changes', () => {
+  const gjs = fs.readFileSync(path.join(SITE, 'js/graph.js'), 'utf8');
+  assert(/addEventListener\('resize'/.test(gjs), 'no resize handling');
+  assert(/orientationchange/.test(gjs), 'no orientation handling — rotation leaves it cropped');
+  assert(/ResizeObserver/.test(gjs), 'no container observer');
+  assert(/bindResponsive/.test(gjs) && /_labelsThinned/.test(gjs),
+    'no label thinning — small screens become a smear of overlapping text');
+});
+
+console.log('\n=== MATURITY RINGS ===');
+
+check('health renders as concentric rings, one per metric', () => {
+  const { renderMaturityRings } = ringsMod;
+  const h = computeHealth(idx);
+  const svg = renderMaturityRings(h);
+  assert(/<svg/.test(svg), 'no svg');
+  assert((svg.match(/class="mr-arc"/g) || []).length === h.metrics.length,
+    'one arc per metric expected');
+  assert((svg.match(/class="mr-track"/g) || []).length === h.metrics.length,
+    'each arc needs a track behind it');
+  assert(/linearGradient/.test(svg), 'arcs are flat — no gradient');
+  assert(/role="img"/.test(svg) && /aria-label=/.test(svg), 'chart is not accessible');
+});
+
+check('rings carry the real values and animate from empty', () => {
+  const { renderMaturityRings } = ringsMod;
+  const h = computeHealth(idx);
+  const svg = renderMaturityRings(h);
+  assert(svg.includes(`>${h.overall}<`), 'overall score missing from the centre');
+  for (const m of h.metrics) {
+    assert(svg.includes(`${m.plainLabel || m.label}`), `${m.key} missing from legend`);
+  }
+  assert(/--mr-len:/.test(svg) && /--mr-off:/.test(svg),
+    'no dash geometry — arcs cannot animate');
+  assert(/--mr-delay:/.test(svg), 'no stagger — all arcs would appear at once');
+  assert(/stroke-dashoffset:\s*var\(--mr-len\)/.test(CSS),
+    'arcs do not start empty, so the draw-in never reads as motion');
+});
+
+check('the old flat-bar breakdown is gone', () => {
+  const html = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8');
+  assert(!/id="health-breakdown"/.test(html), 'old bar block still in the markup');
+  assert(/id="health-rings"/.test(html), 'ring host missing');
+});
+
+check('ring animation respects reduced-motion', () => {
+  const idx0 = CSS.indexOf('prefers-reduced-motion');
+  assert(idx0 > -1, 'no reduced-motion block');
+  assert(/\.mr-arc[^}]*transition:\s*none|mr-arc,[^{]*\{[^}]*transition:\s*none/.test(
+    CSS.slice(idx0)) || /mr-arc/.test(CSS.slice(idx0)),
+    'rings still animate under reduced-motion');
 });
 
 console.log('\n' + '='.repeat(62));
