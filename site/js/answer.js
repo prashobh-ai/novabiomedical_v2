@@ -23,6 +23,7 @@
 import { analyseQuestion, rerankByIntent } from './nlu.js?v=7';
 import { summarise } from './summarize.js?v=7';
 import { computeConfidence } from './confidence.js?v=7';
+import { composeResponse, composeNoAnswer } from './compose.js?v=8';
 
 /**
  * @param {string} query
@@ -63,15 +64,7 @@ export function buildAnswer(query, ranked, chunks, cohesion = {}, opts = {}) {
     const conf = computeConfidence({ analysis, ranked: pool, sentences: [], diagnostics, idf });
     const routedOut = summary.rejected > 0;
     return {
-      answerHtml:
-        `<p class="answer-none">No passage in the corpus answers this directly.</p>` +
-        `<p class="answer-none-detail">` +
-        (routedOut
-          ? `${summary.rejected} candidate passage${summary.rejected === 1 ? ' was' : 's were'} ` +
-            `found but filtered out — they matched the words in your question without ` +
-            `containing ${analysis.intent.wants || 'a usable answer'}. `
-          : '') +
-        `The nearest related document is <strong>${top.document_name}</strong>.</p>`,
+      answerHtml: composeNoAnswer(analysis, top.document_name, summary.rejected),
       citations: [{ num: 1, chunkIdx: ranked[0].chunkIdx, chunk: top, score: ranked[0].score, confidence: 0.2 }],
       lowConfidence: true,
       confidence: conf,
@@ -82,8 +75,6 @@ export function buildAnswer(query, ranked, chunks, cohesion = {}, opts = {}) {
 
   // ---- citation numbering, in order of first appearance --------------------
   const citationsByChunk = new Map();
-  const pieces = [];
-
   for (const s of summary.sentences) {
     if (!citationsByChunk.has(s.chunkIdx)) {
       citationsByChunk.set(s.chunkIdx, {
@@ -94,11 +85,6 @@ export function buildAnswer(query, ranked, chunks, cohesion = {}, opts = {}) {
         signals: s.signals,
       });
     }
-    const cite = citationsByChunk.get(s.chunkIdx);
-    pieces.push(
-      `<span class="answer-sent">${escapeHtml(s.display)}` +
-      `<sup class="cite-ref" data-cite="${cite.num}">[${cite.num}]</sup></span>`
-    );
   }
 
   const citations = [...citationsByChunk.values()];
@@ -109,14 +95,15 @@ export function buildAnswer(query, ranked, chunks, cohesion = {}, opts = {}) {
     analysis, ranked: pool, sentences: summary.sentences, diagnostics, idf,
   });
 
-  // A lead-in line naming what kind of answer this is makes the routing visible
-  // and sets the reader's expectation before the evidence.
-  const lead = analysis.intent.name && analysis.intent.name !== 'GENERAL'
-    ? `<p class="answer-lead">${labelFor(analysis)}</p>`
-    : '';
+  // Compose the reply: opener, evidence connected by discourse markers, and a
+  // closing note when there is something the reader should know about the
+  // limits of the answer.
+  const composed = composeResponse(analysis, summary.sentences, citations, confidence, summary);
 
   return {
-    answerHtml: lead + `<p class="answer-body">${pieces.join(' ')}</p>`,
+    answerHtml: composed.html,
+    answerPlain: composed.plain,
+    interpretation: labelFor(analysis),
     citations,
     lowConfidence: confidence.percent < 45,
     confidence,

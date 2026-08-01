@@ -48,7 +48,7 @@ function coverage(index) {
   const TARGET = 8;
   const value = pct(perDoc / TARGET);
   return {
-    key: 'coverage', label: 'Coverage', value, band: band(value),
+    key: 'coverage', plainLabel: 'Depth', plainWhat: 'How much usable material each document contributes.', plainRisk: 'Thin documents give the system only one place to look, so answers get shallower.', label: 'Coverage', value, band: band(value),
     formula: 'min(1, meanPassagesPerDocument / 8) × 100',
     inputs: { maintainedDocuments: docs, passages: chunks,
               meanPassagesPerDocument: +perDoc.toFixed(2), target: TARGET,
@@ -65,7 +65,7 @@ function connectivity(index) {
   const ratio = linked / Math.max(entities.length, 1);
   const value = pct(ratio / 0.35);      // 35% cross-document linkage = healthy fabric
   return {
-    key: 'connectivity', label: 'Connectivity', value, band: band(value),
+    key: 'connectivity', plainLabel: 'Connectedness', plainWhat: 'How often the same topic appears across different documents.', plainRisk: 'Disconnected documents mean questions spanning two of them cannot be answered at all.', label: 'Connectivity', value, band: band(value),
     formula: '(entities appearing in ≥2 documents / all entities) / 0.35 × 100',
     inputs: { entities: entities.length, crossDocumentEntities: linked,
               rawRatio: +(ratio * 100).toFixed(1) + '%', healthyThreshold: '35%' },
@@ -88,7 +88,7 @@ function provenance(index) {
   const byMethod = {};
   for (const d of docs) byMethod[d.date_method || 'unknown'] = (byMethod[d.date_method || 'unknown'] || 0) + 1;
   return {
-    key: 'provenance', label: 'Provenance', value, band: band(value),
+    key: 'provenance', plainLabel: 'Traceability', plainWhat: 'Whether we can tell when each document is from, and how we know.', plainRisk: 'Without dates you cannot tell a current revision from a withdrawn one.', label: 'Provenance', value, band: band(value),
     formula: '(documentsWithAnyDate + documentsWithAuthoritativeDate) / (2 × documents) × 100',
     inputs: { documents: docs.length, withDate: dated.length, authoritative, byMethod },
     meaning: 'Can we say when each document is from, and how do we know? Counts ' +
@@ -104,7 +104,7 @@ function extractionQuality(index) {
   const chunks = index.chunks || [];
   const withQ = chunks.filter(c => typeof c.quality === 'number');
   if (!withQ.length) {
-    return { key: 'extraction', label: 'Extraction quality', value: 0, band: 'critical',
+    return { key: 'extraction', plainLabel: 'Readability', plainWhat: 'How much of the text is clean prose rather than table debris.', plainRisk: 'Debris produces answers that look confident and read as nonsense.', label: 'Extraction quality', value: 0, band: 'critical',
              formula: 'mean(chunk.quality)', inputs: { measured: 0 },
              meaning: 'Share of indexed text that is clean prose.',
              lowMeans: 'Not measured — rebuild the index to populate sentence quality.' };
@@ -114,7 +114,10 @@ function extractionQuality(index) {
   let sents = 0, prose = 0;
   for (const c of chunks) for (const s of (c.sents || [])) { sents++; if (s.k === 'prose') prose++; }
   return {
-    key: 'extraction', label: 'Extraction quality', value, band: band(value),
+    key: 'extraction', plainLabel: 'Readability',
+    plainWhat: 'How much of the text is clean prose rather than table debris.',
+    plainRisk: 'Debris produces answers that look confident and read as nonsense.',
+    label: 'Extraction quality', value, band: band(value),
     formula: 'mean(perPassageProseQuality) × 100, from build-time sentence classification',
     inputs: { passagesMeasured: withQ.length, sentences: sents, proseSentences: prose,
               prosePercent: +(prose / Math.max(sents, 1) * 100).toFixed(1) + '%' },
@@ -129,7 +132,7 @@ function freshness(index) {
   const maintained = (index.documents || []).filter(isMaintainedDocument);
   const docs = maintained.filter(d => d.date_date);
   if (!docs.length) {
-    return { key: 'freshness', label: 'Freshness', value: 0, band: 'critical',
+    return { key: 'freshness', plainLabel: 'Currency', plainWhat: 'How recent the maintained documents are.', plainRisk: 'Out-of-date documentation is a compliance exposure, not just a quality one.', label: 'Freshness', value: 0, band: 'critical',
              formula: 'median document age', inputs: { dated: 0 },
              meaning: 'How current the corpus is.',
              lowMeans: 'No dates resolved, so age is unknown — not the same as old.' };
@@ -142,7 +145,10 @@ function freshness(index) {
   const FRESH_DAYS = 730, STALE_DAYS = 2190;
   const value = pct(1 - (median - FRESH_DAYS) / (STALE_DAYS - FRESH_DAYS));
   return {
-    key: 'freshness', label: 'Freshness', value, band: band(value),
+    key: 'freshness', plainLabel: 'Currency',
+    plainWhat: 'How recent the maintained documents are.',
+    plainRisk: 'Out-of-date documentation is a compliance exposure, not just a quality one.',
+    label: 'Freshness', value, band: band(value),
     formula: '1 − (medianAgeDays − 730) / (2190 − 730), clamped to [0,1]',
     inputs: { maintainedDocuments: maintained.length, datedDocuments: docs.length,
               undatedDocuments: maintained.length - docs.length,
@@ -217,20 +223,43 @@ export function computeHealth(index) {
            method: 'unweighted mean of five independently computed metrics' };
 }
 
+/** Headline summary in business language — what these five numbers mean for the
+ *  organisation, stated before any metric name appears. */
+export function healthNarrative(health) {
+  const weakest = [...health.metrics].sort((a, b) => a.value - b.value)[0];
+  const strongest = [...health.metrics].sort((a, b) => b.value - a.value)[0];
+  const verdict =
+    health.overall >= 75 ? 'in good shape'
+    : health.overall >= 50 ? 'usable, with clear gaps'
+    : 'fragile in ways that will affect answers';
+  return {
+    verdict,
+    headline: `This documentation set is ${verdict}.`,
+    strongest: `Strongest: ${strongest.plainLabel.toLowerCase()} — ${strongest.plainWhat.toLowerCase()}`,
+    weakest: `Needs attention: ${weakest.plainLabel.toLowerCase()}. ${weakest.plainRisk}`,
+  };
+}
+
 export function renderHealthDerivation(health) {
   const rows = health.metrics.map(m => `
     <div class="health-derive-row">
       <div class="health-derive-head">
-        <span class="health-derive-label">${m.label}</span>
+        <span class="health-derive-label">${m.plainLabel || m.label}</span>
         <span class="health-derive-value health-band-${m.band}">${m.value}</span>
       </div>
-      <div class="health-derive-formula"><code>${m.formula}</code></div>
-      <div class="health-derive-inputs">${
-        Object.entries(m.inputs).map(([k, v]) =>
-          `<span class="hd-kv"><b>${k}</b> ${typeof v === 'object' ? JSON.stringify(v) : v}</span>`
-        ).join('')}</div>
-      <div class="health-derive-meaning">${m.meaning}</div>
-      <div class="health-derive-low"><b>If low:</b> ${m.lowMeans}</div>
+      <div class="health-derive-meaning">${m.plainWhat || m.meaning}</div>
+      <div class="health-derive-low"><b>Why it matters:</b> ${m.plainRisk || m.lowMeans}</div>
+      <details class="tech-detail">
+        <summary>How this is calculated</summary>
+        <div class="tech-detail-body">
+          <div class="health-derive-formula"><code>${m.formula}</code></div>
+          <div class="health-derive-inputs">${
+            Object.entries(m.inputs).map(([k, v]) =>
+              `<span class="hd-kv"><b>${k}</b> ${typeof v === 'object' ? JSON.stringify(v) : v}</span>`
+            ).join('')}</div>
+          <div class="health-derive-low">${m.meaning}</div>
+        </div>
+      </details>
     </div>`).join('');
 
   const riskRows = health.risks.map(r => `
@@ -239,20 +268,26 @@ export function renderHealthDerivation(health) {
         <span class="health-derive-label">${r.label}</span>
         <span class="health-derive-value">${r.value}</span>
       </div>
-      <div class="health-derive-inputs"><span class="hd-kv">${r.detail}</span></div>
-      <div class="health-derive-formula"><code>${r.how}</code></div>
       <div class="health-derive-low">${r.why}</div>
+      <details class="tech-detail">
+        <summary>How this is counted</summary>
+        <div class="tech-detail-body">
+          <div class="health-derive-inputs"><span class="hd-kv">${r.detail}</span></div>
+          <div class="health-derive-formula"><code>${r.how}</code></div>
+        </div>
+      </details>
     </div>`).join('');
 
+  const n = healthNarrative(health);
   return `
     <div class="health-derivation">
       <p class="health-derive-intro">
-        Overall <strong>${health.overall}/100</strong> — ${health.method}.
-        Every figure below is computed from the built index at page load; none are
-        configured or hard-coded. Formulas and raw inputs are shown so each number
-        can be checked.
+        <strong>${n.headline}</strong> Each measure below is calculated from the
+        documents themselves every time this page loads — nothing is configured or
+        typed in. Open <em>How this is calculated</em> on any row to see the exact
+        working.
       </p>
-      <h4>Metrics</h4>${rows}
-      <h4>Risks</h4>${riskRows}
+      <h4>What we measured</h4>${rows}
+      <h4>Where the risk sits</h4>${riskRows}
     </div>`;
 }

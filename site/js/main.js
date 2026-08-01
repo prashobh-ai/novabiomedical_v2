@@ -12,7 +12,8 @@ import { matchQuestionBank, QUESTION_BANK } from './questionbank.js?v=5';
 import { loadSemanticIndex } from './semantic.js?v=6';
 import { hybridSearch, explainRanking } from './hybrid.js?v=6';
 import { renderConfidenceBreakdown } from './confidence.js?v=7';
-import { computeHealth, renderHealthDerivation } from './health.js?v=7';
+import { computeHealth, renderHealthDerivation, healthNarrative } from './health.js?v=8';
+import { BRAND, COPY, applyBrand } from './brand.js?v=8';
 
 const INDEX_URL = 'data/index.json';
 
@@ -66,6 +67,7 @@ async function boot() {
     updateRetrievalBadge();
   });
 
+  applyBrand(document);
   renderCommandTiles();
   renderMaturityScore();
   renderHealthExplainer();
@@ -279,11 +281,20 @@ function maturityTone(score) {
 
 function renderHealthExplainer() {
   const host = document.getElementById('health-derivation');
-  if (!host || !state.index) return;
+  if (!state.index) return;
   try {
     const health = computeHealth(state.index);
-    host.innerHTML = renderHealthDerivation(health);
+    if (host) host.innerHTML = renderHealthDerivation(health);
     state.health = health;
+
+    // Business-language verdict above the numbers.
+    const n = healthNarrative(health);
+    const vEl = document.getElementById('health-verdict');
+    if (vEl) {
+      vEl.innerHTML =
+        `<p class="health-verdict-line">${n.headline}</p>` +
+        `<p class="health-verdict-detail">${n.weakest}</p>`;
+    }
   } catch (err) {
     console.warn('[fabric] health derivation failed:', err.message);
   }
@@ -323,13 +334,19 @@ function renderMaturityScore() {
 
   const breakdownEl = document.getElementById('health-breakdown');
   if (breakdownEl) {
-    const rows = [
-      { label: 'Coverage',       v: m.coverage,       hint: 'chunks per doc' },
-      { label: 'Relationships',  v: m.relationships,  hint: 'graph density' },
-      { label: 'Ownership',      v: m.ownership,      hint: 'named owners present' },
-      { label: 'Documentation',  v: m.documentation,  hint: 'non-boilerplate share' },
-      { label: 'Freshness',      v: m.freshness,      hint: 'recent-year mentions' },
-    ];
+    // Driven off the metrics array, never off hard-coded keys. The previous
+    // version listed Coverage/Relationships/Ownership/Documentation/Freshness by
+    // name; when the metric set was replaced, three of those keys no longer
+    // existed and the UI rendered "undefined" in front of the client. Reading
+    // the array means the display always matches whatever the model computes.
+    const rows = (m.__explainable ? m.__explainable.metrics : []).map(met => ({
+      label: met.plainLabel || met.label,
+      v: met.value,
+      hint: met.plainWhat || met.meaning || '',
+    }));
+    if (!rows.length) {
+      rows.push({ label: 'Overall', v: m.overall, hint: 'composite score' });
+    }
     breakdownEl.innerHTML = rows.map(r => {
       const tn = maturityTone(r.v);
       return `

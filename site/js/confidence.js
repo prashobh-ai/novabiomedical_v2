@@ -27,6 +27,8 @@ const EPS = 0.02;   // floor so one zero signal cannot annihilate the product
 
 export const SIGNAL_SPECS = {
   retrievalMargin: {
+    plainLabel: 'One clear best source',
+    plainWhy: 'The system found one passage that stood out, rather than many weak near-matches.',
     weight: 0.22,
     label: 'Retrieval margin',
     question: 'Did one passage clearly win, or was it a coin toss?',
@@ -36,6 +38,8 @@ export const SIGNAL_SPECS = {
          'the answer is not really in the corpus.',
   },
   retrieverAgreement: {
+    plainLabel: 'Two methods agreed',
+    plainWhy: 'Two independent search methods picked the same evidence — real corroboration, not one method guessing.',
     weight: 0.18,
     label: 'Retriever agreement',
     question: 'Do lexical and semantic search independently agree?',
@@ -45,6 +49,8 @@ export const SIGNAL_SPECS = {
          'carrying the result alone.',
   },
   queryCoverage: {
+    plainLabel: 'Covers what you asked',
+    plainWhy: 'The answer actually addresses the terms in your question, weighted so the unusual words count most.',
     weight: 0.24,
     label: 'Question coverage',
     question: 'Does the answer actually address the terms that were asked about?',
@@ -54,6 +60,8 @@ export const SIGNAL_SPECS = {
          'count more than common ones.',
   },
   sourceConsensus: {
+    plainLabel: 'More than one document',
+    plainWhy: 'Supported by several documents rather than resting on a single file.',
     weight: 0.18,
     label: 'Source consensus',
     question: 'Is this supported by more than one document?',
@@ -62,6 +70,8 @@ export const SIGNAL_SPECS = {
          'about a different product variant.',
   },
   evidenceQuality: {
+    plainLabel: 'Clean source text',
+    plainWhy: 'The supporting text is readable prose, not fragments of tables or page headers.',
     weight: 0.18,
     label: 'Evidence quality',
     question: 'Is the supporting text clean prose or extraction debris?',
@@ -180,24 +190,46 @@ export function computeConfidence({ analysis, ranked, sentences, diagnostics, id
 }
 
 /** Compact HTML for the "how was this derived" panel. */
+/** One plain sentence explaining the score, before any signal name appears. */
+function plainVerdict(conf) {
+  const strong = Object.values(conf.signals).filter(s => s.value >= 0.6).length;
+  if (conf.percent >= 70) {
+    return 'Strong answer. The evidence was clear, consistent, and covered what you asked.';
+  }
+  if (conf.percent >= 45) {
+    return `Reasonable answer, with caveats. ${strong} of 5 quality checks came back strong — ` +
+           `the notes below say which ones did not.`;
+  }
+  if (conf.percent >= 25) {
+    return 'Weak answer. Read the supporting passages before relying on this.';
+  }
+  return 'The documentation does not appear to answer this. Treat what is shown as related context only.';
+}
+
 export function renderConfidenceBreakdown(conf) {
   if (!conf || !conf.signals) return '';
   const rows = Object.entries(conf.signals).map(([key, s]) => `
     <div class="conf-row">
       <div class="conf-row-head">
-        <span class="conf-row-label">${s.label}</span>
+        <span class="conf-row-label">${s.plainLabel || s.label}</span>
         <span class="conf-row-val">${s.percent}%</span>
-        <span class="conf-row-weight">×${s.contribution}</span>
       </div>
       <div class="conf-row-bar"><span style="width:${s.percent}%"></span></div>
-      <div class="conf-row-how"><code>${s.how}</code></div>
-      <div class="conf-row-why">${s.why}</div>
+      <div class="conf-row-why">${s.plainWhy || s.why}</div>
+      <details class="tech-detail">
+        <summary>How this is calculated</summary>
+        <div class="tech-detail-body">
+          <div class="conf-row-how"><code>${s.how}</code></div>
+          <p class="conf-row-tech">${s.why}</p>
+          <p class="conf-row-tech"><b>Weight in the overall score:</b> ${s.contribution}</p>
+        </div>
+      </details>
     </div>`).join('');
 
   const caveats = conf.caveats.length
-    ? `<div class="conf-caveats"><strong>Caveats</strong><ul>${
+    ? `<div class="conf-caveats"><strong>What to watch</strong><ul>${
         conf.caveats.map(c => `<li>${c}</li>`).join('')}</ul></div>`
-    : '<div class="conf-caveats conf-caveats-clean">No caveats — all five signals within normal range.</div>';
+    : '<div class="conf-caveats conf-caveats-clean">All five checks came back clean.</div>';
 
   return `
     <div class="conf-breakdown">
@@ -205,10 +237,21 @@ export function renderConfidenceBreakdown(conf) {
         <span class="conf-headline-num">${conf.percent}%</span>
         <span class="conf-headline-band conf-band-${conf.band.replace(' ', '-')}">${conf.band} confidence</span>
       </div>
-      <p class="conf-method">${conf.method}. Signals are conjunctive, so a geometric
-      mean is used — one failing signal correctly drags the result down instead of
-      being averaged away.</p>
+      <p class="conf-verdict">${plainVerdict(conf)}</p>
+      <p class="conf-method">This score is measured from the evidence found — five
+      independent checks, every time. It is not a fixed number.</p>
       ${rows}
       ${caveats}
+      <details class="tech-detail tech-detail-wide">
+        <summary>Full method</summary>
+        <div class="tech-detail-body">
+          <p class="conf-row-tech">${conf.method}. The five checks are combined as a
+          weighted geometric mean rather than an average, because they are
+          conjunctive: an answer with excellent sourcing but no coverage of the
+          question is not "average", it is wrong. A geometric mean lets one
+          failing check pull the result down instead of being smoothed away.</p>
+          <p class="conf-row-tech"><code>confidence = Π signal_i ^ weight_i</code></p>
+        </div>
+      </details>
     </div>`;
 }
