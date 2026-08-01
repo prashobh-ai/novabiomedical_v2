@@ -710,6 +710,90 @@ check('ring animation respects reduced-motion', () => {
     'rings still animate under reduced-motion');
 });
 
+console.log('\n=== TYPEAHEAD ===');
+const { suggest: taSuggest } = await import(path.join(SITE, 'js/typeahead.js'));
+
+const BANK = QUESTION_BANK
+  .map(q => (typeof q === 'string' ? q : (q.question || q.q || q.text)))
+  .filter(Boolean);
+
+check('suggestions come only from the tested question bank', () => {
+  // This is the demo guarantee: anything a reviewer can pick has a known answer.
+  const set = new Set(BANK);
+  for (const probe of ['what', 'lactate', 'glucose', 'how', 'a', 'meter']) {
+    for (const r of taSuggest(probe, BANK)) {
+      assert(set.has(r.question), `"${r.question}" is not in the bank`);
+    }
+  }
+});
+
+check('all four matching tiers work', () => {
+  const tier = (q) => (taSuggest(q, BANK)[0] || {}).tier;
+  assert(tier('what is the int') === 'prefix', 'prefix matching failed');
+  assert(tier('intended use') === 'contains', 'substring matching failed');
+  assert(tier('use statstrip') === 'words', 'out-of-order word matching failed');
+  assert(tier('sttrp gluc') === 'fuzzy', 'typo tolerance failed');
+});
+
+check('prefix matches outrank looser ones', () => {
+  const r = taSuggest('what is the intended', BANK);
+  assert(r.length > 0, 'no suggestions');
+  assert(r[0].tier === 'prefix', `top result was "${r[0].tier}", expected prefix`);
+  for (let i = 1; i < r.length; i++) {
+    assert(r[i].score <= r[i - 1].score, 'results are not score-ordered');
+  }
+});
+
+check('nonsense returns nothing rather than noise', () => {
+  assert(taSuggest('zzzzqqqq', BANK).length === 0, 'matched nonsense');
+  assert(taSuggest('', BANK).length === 0, 'matched an empty query');
+});
+
+check('the list is capped so it never buries the page', () => {
+  assert(taSuggest('a', BANK).length <= 6, 'more than six suggestions returned');
+});
+
+check('typeahead is wired to both ask inputs', () => {
+  const js = fs.readFileSync(path.join(SITE, 'js/main.js'), 'utf8');
+  assert(/setupTypeahead/.test(js), 'typeahead is never set up');
+  assert(/composer-input/.test(js) && /sticky-ask-input/.test(js),
+    'only one of the two ask inputs is wired');
+});
+
+check('it is a real combobox, not a styled div', () => {
+  const ta = fs.readFileSync(path.join(SITE, 'js/typeahead.js'), 'utf8');
+  for (const attr of ['combobox', 'aria-expanded', 'aria-controls',
+                      'aria-activedescendant', 'aria-autocomplete',
+                      'listbox', 'role="option"']) {
+    assert(ta.includes(attr), `missing ${attr}`);
+  }
+  for (const key of ['ArrowDown', 'ArrowUp', 'Enter', 'Escape', 'Tab']) {
+    assert(ta.includes(key), `no handling for ${key}`);
+  }
+});
+
+check('optional DOM APIs cannot break keyboard navigation', () => {
+  const ta = fs.readFileSync(path.join(SITE, 'js/typeahead.js'), 'utf8');
+  assert(/typeof el\.scrollIntoView === 'function'/.test(ta),
+    'scrollIntoView is called unguarded — it throws inside the keydown handler ' +
+    'in webviews that lack it, killing arrow-key navigation entirely');
+});
+
+check('the ask box keeps the question after asking', () => {
+  const js = fs.readFileSync(path.join(SITE, 'js/main.js'), 'utf8');
+  const submit = js.slice(js.indexOf("form.addEventListener('submit'"));
+  const body = submit.slice(0, submit.indexOf('});'));
+  assert(!/input\.value\s*=\s*['"]{2}/.test(body),
+    'the input is cleared on submit — the reader sees an answer with no visible question');
+});
+
+check('picking a sample chip fills the box visibly', () => {
+  const js = fs.readFileSync(path.join(SITE, 'js/main.js'), 'utf8');
+  const fn = js.slice(js.indexOf('function setupSuggestions'));
+  assert(/input\.value = question/.test(fn), 'chip does not populate the input');
+  assert(/is-autofilled/.test(fn), 'no visual cue that the box was filled');
+});
+
 console.log('\n' + '='.repeat(62));
 console.log(`  ${passed} passed, ${failed} failed`);
 console.log('='.repeat(62));
