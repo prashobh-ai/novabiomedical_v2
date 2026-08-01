@@ -57,7 +57,9 @@ RUNNING_HEADER_RE = re.compile(
 
 PAGE_NUM_PREFIX_RE = re.compile(r"^\s*\d{1,4}\s+(?=[A-Z][a-z])")
 
-EQUATION_RE = re.compile(r"[→⟶⇌←]|—{2,}|\b\d\s*[A-Z]\d\b|\+\s*e\s*-")
+EQUATION_RE = re.compile(
+    r"[→⟶⇌←]|—{2,}|\b\d\s*[A-Z]\d\b|\+\s*e\s*-|"
+    r"\bEquation\s*\d|\b[A-Z][a-z]?\(\w+\)\s*\d|\bLOD(?:ox|red)\b")
 
 TOKEN_RE = re.compile(r"[A-Za-z]{2,}")
 
@@ -105,6 +107,33 @@ def _repair_hyphens(text: str, vocab: Counter) -> str:
     return text
 
 
+# PDF style boundaries fuse a heading to the following word with no space:
+# "AppendixAccuracy", "EnzymesCreatinine", "ContentsQuick". Split on the
+# lower->upper transition when both halves are attested, so retrieval sees two
+# real words instead of one token that matches nothing.
+# CamelCase brand names must never be split. "StatStrip" -> "Stat Strip" would
+# break every product name in the corpus, and both halves are attested words.
+PROTECTED_CAMEL = {
+    "statstrip", "statsensor", "bioprofile", "novabiomedical", "lactateplus",
+    "novamax", "statprofile", "biosensor", "healthcare", "wavesense",
+}
+
+
+def _split_fused_words(text: str, vocab: Counter) -> str:
+    def split(m):
+        whole, a, b = m.group(0), m.group(1), m.group(2)
+        if whole.lower() in PROTECTED_CAMEL:
+            return whole
+        # A fused pair that is itself a frequent token is a real compound word,
+        # not a PDF style-boundary artifact.
+        if vocab.get(whole.lower(), 0) >= 5:
+            return whole
+        if vocab.get(a.lower(), 0) >= 2 and vocab.get(b.lower(), 0) >= 2:
+            return f"{a} {b}"
+        return whole
+    return re.sub(r"\b([A-Z][a-z]{2,})([A-Z][a-z]{2,})\b", split, text)
+
+
 def _repair_split_words(text: str, vocab: Counter) -> str:
     """Merge fragments split by PDF kerning: 'Mea surement', 'b lood', 'Intercep t'.
 
@@ -130,6 +159,17 @@ def _repair_split_words(text: str, vocab: Counter) -> str:
     # short fragment + word,  or  word + short fragment
     text = re.sub(r"\b([A-Za-z]{1,3}) ([A-Za-z]{2,})\b", merge, text)
     text = re.sub(r"\b([A-Za-z]{2,}) ([A-Za-z]{1,3})\b", merge, text)
+
+    # Orphaned single-letter suffixes: "measurement s", "sample d". The
+    # frequency rule above deliberately refuses these (the base word usually
+    # outnumbers its plural), but a lone letter is never a word here — the only
+    # real single-letter English words are "a" and "I".
+    def merge_suffix(m):
+        base, letter = m.group(1), m.group(2)
+        if letter.lower() in {"a", "i"}:
+            return m.group(0)
+        return base + letter if (base + letter).lower() in vocab else m.group(0)
+    text = re.sub(r"\b([A-Za-z]{3,}) ([A-Za-z])\b(?![.'])", merge_suffix, text)
     return text
 
 
@@ -146,6 +186,7 @@ def normalize(text: str, vocab: Counter) -> str:
     t = text.replace("\u00ad", "").replace("\ufb01", "fi").replace("\ufb02", "fl")
     t = t.replace("\u2019", "'").replace("\u201c", '"').replace("\u201d", '"')
     t = _strip_running_headers(t)
+    t = _split_fused_words(t, vocab)
     t = _repair_hyphens(t, vocab)
     t = _repair_split_words(t, vocab)
     t = re.sub(r"[ \t]+", " ", t)
@@ -240,10 +281,47 @@ class SentenceInfo:
     quality: float          # 0..1 — usefulness as answer material
 
 
-def classify_sentence(s: str) -> tuple[str, float]:
+# A chunk boundary can cut a word in half: "...and neonata", "See Indications
+# for Use belo". Presenting those as an answer looks like a bug to the reader.
+TRUNCATED_TAIL_RE = re.compile(r"\b[a-z]{2,}$")
+COMMON_SHORT_ENDINGS = {
+    "be", "do", "go", "is", "as", "at", "in", "on", "of", "to", "up", "so", "no",
+    "we", "he", "it", "or", "if", "by", "an",
+}
+
+
+def looks_truncated(s: str, vocab: Counter | None = None) -> bool:
+    """A sentence cut off at a chunk boundary.
+
+    The reliable test is the corpus vocabulary itself: a real word appears many
+    times across the corpus, whereas a severed one ("neonata", "belo") appears
+    only where the cut happened. A suffix-shape heuristic was tried first and
+    rejected — it flagged "...diagnosis of renal disease" as truncated because
+    "disease" matched no known suffix, which is exactly the kind of false
+    positive that silently deletes good answers.
+    """
+    t = s.strip()
+    if re.search(r"[.!?:;)\]]$", t):
+        return False
+    words = t.split()
+    if not words:
+        return False
+    last = words[-1].strip(",;:").lower()
+    if not last.isalpha() or last in COMMON_SHORT_ENDINGS:
+        return False
+    if vocab is None:
+        return False
+    # Attested several times elsewhere -> a real word that merely ends a passage.
+    return vocab.get(last, 0) < 3
+
+
+def classify_sentence(s: str, vocab: Counter | None = None) -> tuple[str, float]:
     stripped = s.strip()
     n = len(stripped)
     if n < 25:
+        return FRAGMENT, 0.0
+
+    if looks_truncated(stripped, vocab):
         return FRAGMENT, 0.0
 
     letters = sum(c.isalpha() for c in stripped)
@@ -301,7 +379,7 @@ def classify_sentence(s: str) -> tuple[str, float]:
     return PROSE, max(0.0, min(1.0, q))
 
 
-def analyse(text: str) -> list[SentenceInfo]:
+def analyse(text: str, vocab: Counter | None = None) -> list[SentenceInfo]:
     """Sentences with offsets into `text`, so the client can slice rather than
     carry a duplicate copy of the corpus."""
     infos: list[SentenceInfo] = []
@@ -310,7 +388,7 @@ def analyse(text: str) -> list[SentenceInfo]:
         idx = text.find(s[:40], cursor)
         if idx < 0:
             idx = cursor
-        kind, quality = classify_sentence(s)
+        kind, quality = classify_sentence(s, vocab)
         infos.append(SentenceInfo(text=s, offset=idx, length=len(s), kind=kind, quality=round(quality, 3)))
         cursor = idx + max(len(s), 1)
     return infos

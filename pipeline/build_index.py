@@ -240,7 +240,7 @@ def build(source_dir: Path, fda_dir: Path, out_path: Path, semantic_path: Path) 
     serialized = []
     kind_counts: dict = defaultdict(int)
     for i, (c, rec) in enumerate(zip(chunks, aligned)):
-        infos = analyse(c.text)
+        infos = analyse(c.text, vocab)
         for si in infos:
             kind_counts[si.kind] += 1
         serialized.append({
