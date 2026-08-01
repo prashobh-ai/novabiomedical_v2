@@ -3959,3 +3959,129 @@ summary:focus-visible, [tabindex]:focus-visible {
   .mr-arc { stroke-dashoffset: var(--mr-off); }
   .mr-cap, .mr-legend-item { opacity: 1; transform: none; }
 }
+
+/* ==========================================================================
+   PHASE 2.6 — Typeahead
+   The first control a reviewer touches, so it has to feel like every other
+   search box they have used: instant, keyboard-driven, obvious.
+   ========================================================================== */
+.ta-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0; right: 0;
+  z-index: 60;
+  margin: 0; padding: 0.35rem;
+  list-style: none;
+  background: rgba(13, 20, 52, 0.97);
+  border: 1px solid rgba(150, 170, 255, 0.28);
+  border-radius: 14px;
+  box-shadow: 0 28px 70px -24px rgba(0, 0, 0, 0.92),
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(18px);
+  max-height: min(52vh, 380px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: ta-in 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes ta-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+.ta-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.62rem 0.7rem;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--ink-2, #D3DAF0);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  transition: background 120ms ease, color 120ms ease;
+}
+.ta-item:hover,
+.ta-item.is-active {
+  background: rgba(91, 134, 255, 0.16);
+  color: #fff;
+}
+.ta-item.is-active { box-shadow: inset 2px 0 0 var(--signal, #FF2E6B); }
+
+/* A question mark, drawn in CSS — one less asset to load */
+.ta-icon {
+  flex-shrink: 0;
+  width: 1.15rem; height: 1.15rem;
+  border-radius: 50%;
+  background: rgba(150, 170, 255, 0.14);
+  position: relative;
+}
+.ta-icon::after {
+  content: "?";
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-size: 0.66rem; font-weight: 700;
+  color: rgba(190, 205, 255, 0.85);
+}
+.ta-item.is-active .ta-icon { background: rgba(255, 46, 107, 0.24); }
+.ta-item.is-active .ta-icon::after { color: #fff; }
+
+.ta-text { flex: 1; min-width: 0; }
+.ta-text mark {
+  background: transparent;
+  color: var(--positive, #47D6A6);
+  font-weight: 650;
+}
+.ta-item.is-active .ta-text mark { color: #7FFFD4; }
+
+.ta-tier {
+  flex-shrink: 0;
+  font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-4, #7B87A8);
+  border: 1px solid rgba(150, 170, 255, 0.22);
+  border-radius: 999px;
+  padding: 0.15em 0.5em;
+}
+
+.ta-foot {
+  padding: 0.5rem 0.7rem 0.3rem;
+  margin-top: 0.2rem;
+  border-top: 1px solid rgba(150, 170, 255, 0.14);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-4, #7B87A8);
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Brief flash when a sample chip fills the box, so the eye follows the value
+   from the chip to the input rather than wondering where it went. */
+.is-autofilled {
+  animation: ta-fill 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes ta-fill {
+  0%   { box-shadow: 0 0 0 0 rgba(71, 214, 166, 0.55); }
+  100% { box-shadow: 0 0 0 14px rgba(71, 214, 166, 0); }
+}
+
+/* The sticky bar sits at the bottom of the viewport, so its list opens upward. */
+.sticky-ask .ta-list {
+  top: auto;
+  bottom: calc(100% + 8px);
+  animation-name: ta-in-up;
+}
+@keyframes ta-in-up {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (max-width: 640px) {
+  /* Larger tap targets, and a shorter list so the on-screen keyboard does not
+     bury the suggestions it is meant to be filtering. */
+  .ta-item { padding: 0.8rem 0.7rem; font-size: 0.9rem; }
+  .ta-list { max-height: 42vh; border-radius: 12px; }
+  .ta-tier { display: none; }
+  .ta-foot { font-size: 0.58rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ta-list { animation: none; }
+  .is-autofilled { animation: none; }
+}
