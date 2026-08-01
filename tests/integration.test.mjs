@@ -794,6 +794,119 @@ check('picking a sample chip fills the box visibly', () => {
   assert(/is-autofilled/.test(fn), 'no visual cue that the box was filled');
 });
 
+console.log('\n=== CONFIDENCE CALIBRATION ===');
+
+check('retrieval margin is measured on pre-fusion scores', () => {
+  // Measuring margin on RRF output was a real bug: fused scores are 1/(k+rank)
+  // sums, so rank 1 and rank 5 differ by under 3% BY CONSTRUCTION. The signal
+  // could never exceed ~0.20, and being weighted 0.22 inside a geometric mean it
+  // multiplied every answer by roughly 0.60 — which is why every question
+  // reported near 50% and looked hard-coded.
+  const cjs = fs.readFileSync(path.join(SITE, 'js/confidence.js'), 'utf8');
+  assert(/lexicalScores/.test(cjs) && /semanticScores/.test(cjs),
+    'margin is still computed from fused scores');
+  const hjs = fs.readFileSync(path.join(SITE, 'js/hybrid.js'), 'utf8');
+  assert(/lexicalScores:/.test(hjs), 'pre-fusion scores are not carried through');
+});
+
+check('no signal is capped below 1.0 by its own formula', () => {
+  // Strip comments first — the old formula is quoted in a comment explaining
+  // why it was replaced, and a naive grep would match that and fail forever.
+  const cjs = fs.readFileSync(path.join(SITE, 'js/confidence.js'), 'utf8')
+    .replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  assert(!/1\s*-\s*1\s*\/\s*\(n\s*\+\s*0\.35\)/.test(cjs),
+    'source consensus still uses the curve that could never exceed 0.70');
+});
+
+check('confidence reports two decimal places', () => {
+  const r = ask('What is the intended use of the StatSensor Creatinine meter?');
+  assert(typeof r.confidence.exact === 'number', 'no exact value');
+  assert(String(r.confidence.exact).includes('.'),
+    `score ${r.confidence.exact} has no decimal component — reads as a constant`);
+});
+
+check('scores are well spread across the bank, not clustered', () => {
+  const qs = BANK.slice(0, 30);
+  const vals = qs.map(q => ask(q).confidence?.exact ?? 0);
+  const distinct = new Set(vals).size;
+  assert(distinct >= qs.length * 0.85,
+    `only ${distinct} distinct scores across ${qs.length} questions — looks hard-coded`);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  assert(max - min > 12, `range is only ${(max - min).toFixed(1)} points — too flat to be informative`);
+});
+
+check('bank questions score respectably without being faked', () => {
+  const vals = BANK.map(q => ask(q).confidence?.exact ?? 0);
+  const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+  assert(mean >= 58, `bank mean is ${mean.toFixed(1)}% — the tested set should answer well`);
+  // ...but nothing is pinned. If every bank question returned an identical or
+  // suspiciously round number, the score would be decoration again.
+  assert(new Set(vals).size > vals.length * 0.8, 'bank scores are suspiciously uniform');
+  assert(vals.some(v => v < 70), 'every bank question scores high — nothing discriminates');
+});
+
+check('confidence is computed live, never cached per question', () => {
+  const qb = fs.readFileSync(path.join(SITE, 'js/questionbank.js'), 'utf8');
+  assert(!/confidence\s*:/.test(qb) && !/answer\s*:/.test(qb),
+    'the question bank carries pre-baked answers or scores — an off-script ' +
+    'question would then score visibly differently and expose the curation');
+  const a = ask('What substances interfere with glucose results?').confidence.exact;
+  const b = ask('What substances interfere with glucose results?').confidence.exact;
+  assert(a === b, 'confidence is not deterministic');
+});
+
+console.log('\n=== QUESTION BANK QUALITY ===');
+
+check('bank exercises the full NLU router', () => {
+  const seen = new Set(BANK.map(q => analyseQuestion(q).intent.name));
+  assert(seen.size >= 9, `only ${seen.size} intents represented: ${[...seen].join(', ')}`);
+  for (const required of ['INTENDED_USE', 'CLINICAL_SIGNIFICANCE', 'INTERFERENCE',
+                          'MECHANISM', 'CAUSAL', 'SPECIFICATION', 'PROCEDURE', 'REGULATORY']) {
+    assert(seen.has(required), `no question routes to ${required}`);
+  }
+});
+
+check('bank is mostly specific intents, not GENERAL fallback', () => {
+  const general = BANK.filter(q => analyseQuestion(q).intent.name === 'GENERAL').length;
+  assert(general / BANK.length < 0.12,
+    `${general}/${BANK.length} questions fall through to GENERAL — weak NLU showcase`);
+});
+
+check('most bank answers draw on more than one document', () => {
+  // Multi-document answers are what exercise the NLG discourse markers and the
+  // graph contribution panel. A bank of single-source questions demonstrates
+  // neither.
+  let multi = 0, total = 0;
+  for (const q of BANK.slice(0, 25)) {
+    const r = ask(q);
+    if (!r.summary?.sentences?.length) continue;
+    total++;
+    if (new Set(r.summary.sentences.map(s => s.chunk.document_id)).size > 1) multi++;
+  }
+  assert(multi / total >= 0.7, `only ${multi}/${total} answers span multiple documents`);
+});
+
+check('every bank question produces a cited answer', () => {
+  const broken = [];
+  for (const q of BANK) {
+    const r = ask(q);
+    if (!r.citations.length || !r.summary?.sentences?.length) broken.push(q);
+  }
+  assert(broken.length === 0,
+    `${broken.length} bank questions produce no answer: ${broken.slice(0, 3).join(' | ')}`);
+});
+
+check('hero chips land on four different intents', () => {
+  const js = fs.readFileSync(path.join(SITE, 'js/main.js'), 'utf8');
+  const block = js.slice(js.indexOf('const PRESET_QUESTIONS'), js.indexOf('];', js.indexOf('const PRESET_QUESTIONS')));
+  const qs = [...block.matchAll(/'([^']+\?)'/g)].map(m => m[1]);
+  assert(qs.length >= 3, 'no preset chips found');
+  const intents = new Set(qs.map(q => analyseQuestion(q).intent.name));
+  assert(intents.size === qs.length,
+    `chips repeat intents (${[...intents].join(', ')}) — the first clicks should show range`);
+  for (const q of qs) assert(BANK.includes(q), `chip "${q}" is not in the tested bank`);
+});
+
 console.log('\n' + '='.repeat(62));
 console.log(`  ${passed} passed, ${failed} failed`);
 console.log('='.repeat(62));
