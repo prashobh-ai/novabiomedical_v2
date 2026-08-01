@@ -73,5 +73,10 @@ jobs:
       - name: Browser integration test
         run: node tests/integration.test.mjs
 
+      # Answer quality is a product requirement, not a nice-to-have. These
+      # assertions encode the exact failures from demo 2 so they cannot recur.
+      - name: Answer quality gate
+        run: node tests/integration.test.mjs 2>&1 | grep -q "0 failed"
+
       - name: Retrieval evaluation (report only on PRs)
         run: python -m eval.evaluate --index /tmp/index.json --semantic /tmp/semantic.json
