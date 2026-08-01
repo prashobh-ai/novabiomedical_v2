@@ -3799,3 +3799,163 @@ summary:focus-visible, [tabindex]:focus-visible {
   .mg-edge, .mg-doc { animation: none; }
   .mg-node-hub-halo { animation: none; }
 }
+
+/* ==========================================================================
+   PHASE 2.5 — the graph on small screens, and the health rings
+   ========================================================================== */
+
+/* ---- MOBILE HERO: the graph gets its own stage --------------------------
+   On desktop the hero is text over a full-bleed graph, which works because
+   there is room either side. On a phone the overlay went full-width and sat
+   directly on top, leaving the graph as faint wallpaper behind body copy —
+   unreadable, and it happens to be the single most persuasive thing on the
+   page. So on small screens we stop overlaying and start stacking: the copy
+   takes the top, the graph gets a framed stage of its own beneath it.
+
+   This matters more than it looks. Reviewers open the link on a phone during a
+   Teams call; whatever the phone shows IS the demo. */
+@media (max-width: 900px) {
+  .hero {
+    display: flex !important;
+    flex-direction: column;
+    height: auto !important;
+    min-height: 0 !important;
+    padding-bottom: 1.25rem;
+  }
+
+  /* Copy first, in normal flow — no longer absolutely positioned over the map */
+  .hero-overlay {
+    position: static !important;
+    transform: none !important;
+    width: auto !important;
+    left: auto !important;
+    right: auto !important;
+    order: 1;
+    padding: 1.5rem 1rem 1rem;
+    gap: 1rem;
+  }
+
+  /* The map becomes a deliberate, framed exhibit */
+  .hero-galaxy {
+    position: relative !important;
+    inset: auto !important;
+    order: 2;
+    height: clamp(300px, 46vh, 440px);
+    margin: 0 0.75rem;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(150, 170, 255, 0.24);
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(91,134,255,0.16), transparent 65%),
+      rgba(8, 14, 44, 0.55);
+    box-shadow: 0 24px 60px -32px rgba(0, 0, 0, 0.9),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  .hero-galaxy::after {
+    content: "Pinch to zoom · tap a node";
+    position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+    font-size: 0.6rem; letter-spacing: 0.09em; text-transform: uppercase;
+    color: rgba(210, 220, 250, 0.5);
+    background: rgba(8, 14, 44, 0.72);
+    padding: 0.25em 0.7em; border-radius: 999px;
+    pointer-events: none; z-index: 4;
+    backdrop-filter: blur(6px);
+  }
+  .hero-galaxy .vis-network { touch-action: pan-x pan-y pinch-zoom; }
+
+  /* Suppress the desktop wash that dimmed the canvas behind the overlay */
+  .hero-veil, .hero-scrim { opacity: 0.25 !important; }
+
+  .hero-status {
+    order: 3;
+    position: static !important;
+    margin: 0.85rem 0.75rem 0;
+    align-self: stretch;
+  }
+}
+
+@media (max-width: 560px) {
+  .hero-galaxy { height: clamp(260px, 40vh, 340px); margin-inline: 0.6rem; }
+  .hero-title  { font-size: clamp(30px, 9vw, 44px) !important; }
+}
+
+/* Tall tablets get more of it — there is room, and it is the showpiece */
+@media (min-width: 561px) and (max-width: 900px) and (min-height: 800px) {
+  .hero-galaxy { height: 50vh; }
+}
+
+/* ---- MATURITY RINGS ---------------------------------------------------- */
+.health-rings-host { width: 100%; }
+.maturity-rings {
+  display: flex; flex-direction: column; align-items: center; gap: 1.1rem;
+}
+.mr-chart { position: relative; width: 100%; max-width: 280px; }
+.mr-chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+.mr-track { fill: none; stroke: rgba(150, 170, 255, 0.10); stroke-linecap: round; }
+
+.mr-arc {
+  fill: none; stroke-linecap: round;
+  stroke-dashoffset: var(--mr-len);          /* start empty */
+  transition: stroke-dashoffset 1.15s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--mr-delay, 0ms);
+  filter: drop-shadow(0 0 5px rgba(120, 150, 255, 0.28));
+}
+.is-drawn .mr-arc { stroke-dashoffset: var(--mr-off); }
+
+.mr-cap {
+  opacity: 0; transform-box: fill-box; transform-origin: center;
+  transition: opacity 420ms ease var(--mr-delay, 0ms);
+}
+.is-drawn .mr-cap { opacity: 1; }
+
+.mr-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  pointer-events: none; gap: 0.05rem;
+}
+.mr-score {
+  font-size: clamp(2.4rem, 1.6rem + 3.2vw, 3.4rem);
+  font-weight: 300; line-height: 1; color: #fff;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}
+.mr-suffix { font-size: 0.72rem; color: var(--ink-4, #7B87A8); letter-spacing: 0.06em; }
+.mr-band {
+  margin-top: 0.35rem; font-size: 0.58rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 0.22em 0.7em; border-radius: 999px;
+}
+.mr-band-strong   { color: #47D6A6; background: rgba(71, 214, 166, 0.14); }
+.mr-band-adequate { color: #7FD8FF; background: rgba(127, 216, 255, 0.14); }
+.mr-band-weak     { color: #F6B44C; background: rgba(246, 180, 76, 0.14); }
+.mr-band-critical { color: #FF6E9C; background: rgba(255, 110, 156, 0.16); }
+
+.mr-legend { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 300px; }
+.mr-legend-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.34rem 0; border-bottom: 1px solid rgba(150, 170, 255, 0.10);
+  opacity: 0; transform: translateX(-6px);
+  transition: opacity 380ms ease var(--mr-delay, 0ms),
+              transform 380ms cubic-bezier(0.22, 1, 0.36, 1) var(--mr-delay, 0ms);
+}
+.is-drawn .mr-legend-item { opacity: 1; transform: none; }
+.mr-legend-item:last-child { border-bottom: none; }
+.mr-swatch { width: 0.6rem; height: 0.6rem; border-radius: 3px; flex-shrink: 0; }
+.mr-legend-label {
+  flex: 1; font-size: var(--fs-small, 0.82rem); color: var(--ink-2, #D3DAF0);
+}
+.mr-legend-val {
+  font-size: var(--fs-small, 0.82rem); font-weight: 700; color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 900px) {
+  .maturity-rings { gap: 1.4rem; }
+  .mr-chart { max-width: 300px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mr-arc, .mr-cap, .mr-legend-item { transition: none; }
+  .mr-arc { stroke-dashoffset: var(--mr-off); }
+  .mr-cap, .mr-legend-item { opacity: 1; transform: none; }
+}
