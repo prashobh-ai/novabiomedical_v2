@@ -1,0 +1,69 @@
+name: Build and Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install pipeline dependencies
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Build index from docs_source
+        run: python -m pipeline.build_index --source docs_source --out site/data/index.json
+
+      - name: Verify build artifacts
+        run: |
+          test -f site/index.html
+          test -f site/data/index.json
+          test -f site/data/semantic.json
+          ls -lh site/data/index.json site/data/semantic.json
+
+      - name: Retrieval quality gate
+        run: |
+          python -m eval.evaluate --gate --json site/data/eval_report.json
+        # A retrieval regression ships broken answers to every user. Failing the
+        # deploy is cheaper than shipping a fabric that quietly stopped finding things.
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          # Enable GitHub Pages automatically if it isn't already turned on,
+          # so the first deploy doesn't fail with "Get Pages site failed".
+          enablement: true
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
