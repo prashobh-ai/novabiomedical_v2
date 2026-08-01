@@ -1,0 +1,213 @@
+{
+  "corpus": {
+    "chunks": 1360,
+    "documents": 391,
+    "sources": 2,
+    "semantic_enabled": true
+  },
+  "cases": 16,
+  "modes": {
+    "lexical": {
+      "recall@5": 0.8438,
+      "recall@10": 0.8438,
+      "mrr": 0.7708,
+      "ndcg@10": 0.8073,
+      "cross_source_satisfied": 0.6667,
+      "robustness": 1.0,
+      "mean_latency_ms": 29.73
+    },
+    "semantic": {
+      "recall@5": 0.8438,
+      "recall@10": 0.9062,
+      "mrr": 0.7089,
+      "ndcg@10": 0.7894,
+      "cross_source_satisfied": 0.6667,
+      "robustness": 1.0,
+      "mean_latency_ms": 27.65
+    },
+    "hybrid": {
+      "recall@5": 0.875,
+      "recall@10": 0.875,
+      "mrr": 0.8281,
+      "ndcg@10": 0.8362,
+      "cross_source_satisfied": 1.0,
+      "robustness": 1.0,
+      "mean_latency_ms": 26.94
+    }
+  },
+  "per_case": [
+    {
+      "id": "lex-001",
+      "category": "lexical",
+      "question": "What is the StatStrip glucose measurement range?",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 0.937,
+      "hits": 10
+    },
+    {
+      "id": "lex-002",
+      "category": "lexical",
+      "question": "K232075",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 0.996,
+      "hits": 10
+    },
+    {
+      "id": "lex-003",
+      "category": "lexical",
+      "question": "quality control testing frequency",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "hits": 10
+    },
+    {
+      "id": "sem-001",
+      "category": "semantic",
+      "question": "kidney function testing",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 0.997,
+      "hits": 10
+    },
+    {
+      "id": "sem-002",
+      "category": "semantic",
+      "question": "how sick patients in intensive care are tested",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 0.976,
+      "hits": 10
+    },
+    {
+      "id": "sem-003",
+      "category": "semantic",
+      "question": "device safety problems reported to regulators",
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr": 0.0,
+      "ndcg@10": 0.0,
+      "hits": 10
+    },
+    {
+      "id": "sem-004",
+      "category": "semantic",
+      "question": "cell culture monitoring in bioprocessing",
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr": 0.0,
+      "ndcg@10": 0.0,
+      "hits": 10
+    },
+    {
+      "id": "reg-001",
+      "category": "regulatory",
+      "question": "Which FDA product code covers blood gas electrodes?",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 0.25,
+      "ndcg@10": 0.501,
+      "hits": 10
+    },
+    {
+      "id": "reg-002",
+      "category": "regulatory",
+      "question": "What software defects caused a recall?",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 0.971,
+      "hits": 10
+    },
+    {
+      "id": "reg-003",
+      "category": "regulatory",
+      "question": "When was the Allegro UACR assay cleared?",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "hits": 10
+    },
+    {
+      "id": "reg-004",
+      "category": "regulatory",
+      "question": "Nova Max Creat eGFR clearance",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "hits": 10
+    },
+    {
+      "id": "xsrc-001",
+      "category": "cross_source",
+      "question": "StatStrip Glucose clearance and product documentation",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "hits": 10,
+      "cross_source_satisfied": 1
+    },
+    {
+      "id": "xsrc-002",
+      "category": "cross_source",
+      "question": "Stat Profile Prime Plus analyzer regulatory status and manual",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "hits": 10,
+      "cross_source_satisfied": 1
+    },
+    {
+      "id": "xsrc-003",
+      "category": "cross_source",
+      "question": "creatinine testing device clearance and instructions",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "hits": 10,
+      "cross_source_satisfied": 1
+    },
+    {
+      "id": "rob-001",
+      "category": "robustness",
+      "question": "asdfghjkl qwertyuiop",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "hits": 0,
+      "robustness": 1
+    },
+    {
+      "id": "rob-002",
+      "category": "robustness",
+      "question": "the",
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "hits": 0,
+      "robustness": 1
+    }
+  ],
+  "by_category": {
+    "cross_source": 1.0,
+    "lexical": 1.0,
+    "regulatory": 1.0,
+    "robustness": 1.0,
+    "semantic": 0.5
+  },
+  "best_mode": "hybrid"
+}
