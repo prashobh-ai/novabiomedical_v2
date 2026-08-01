@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Build artifacts (CI regenerates on every push)
+site/data/index.json
+site/data/semantic.json
+site/data/eval_report.json
+
+# Logs
+*.log
