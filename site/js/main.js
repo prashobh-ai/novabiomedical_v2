@@ -13,6 +13,7 @@ import { loadSemanticIndex } from './semantic.js?v=6';
 import { hybridSearch, explainRanking } from './hybrid.js?v=6';
 import { renderConfidenceBreakdown } from './confidence.js?v=7';
 import { computeHealth, renderHealthDerivation, healthNarrative } from './health.js?v=8';
+import { renderMaturityRings } from './rings.js?v=11';
 import { BRAND, COPY, applyBrand } from './brand.js?v=9';
 import { explainGraphContribution, renderGraphContribution, graphPurposeCopy }
   from './graphvalue.js?v=9';
@@ -71,8 +72,8 @@ async function boot() {
 
   applyBrand(document);
   renderCommandTiles();
-  renderMaturityScore();
   renderHealthExplainer();
+  renderMaturityScore();
   renderKnowledgeRisk();
   renderLineageDemo();
   populateSuggestions();
@@ -319,68 +320,22 @@ function renderHealthExplainer() {
 }
 
 function renderMaturityScore() {
-  // Prefer the explainable metrics; fall back to the legacy heuristic only if
-  // the index predates the sentence/date layers.
-  let m;
+  // One concentric ring chart replaces the old single ring + five flat bars.
+  // Built from health.metrics directly, so it can never drift from the model
+  // the way the hard-coded label list did.
+  const host = document.getElementById('health-rings');
+  if (!host || !state.index) return;
   try {
-    const h = computeHealth(state.index);
-    m = { overall: h.overall };
-    for (const met of h.metrics) m[met.key] = met.value;
-    m.__explainable = h;
-  } catch (_) {
-    m = computeMaturity();
-  }
-  state.maturity = m;
+    const health = state.health || computeHealth(state.index);
+    state.health = health;
+    state.maturity = { overall: health.overall };
+    host.innerHTML = renderMaturityRings(health);
 
-  // Narrative layout — big ring in Section 4. Old top-bar maturity-card
-  // elements (kept hidden in DOM as legacy shim) get the values too for
-  // backward compatibility, but the visible UI is the big ring below.
-  const valNumEl = document.getElementById('health-score-num');
-  const ringBigEl = document.getElementById('health-ring-fill');
-  const t = maturityTone(m.overall);
-  if (valNumEl) animateNumber(valNumEl, m.overall);
-  if (ringBigEl) {
-    // 2 * pi * 52 ≈ 327
-    const circumference = 327;
-    // Start at 0 and animate to the real offset on next frame so the
-    // transition fires every time.
-    requestAnimationFrame(() => {
-      ringBigEl.style.strokeDashoffset = circumference * (1 - m.overall / 100);
-      ringBigEl.style.stroke = t.stroke;
-    });
-  }
-
-  const breakdownEl = document.getElementById('health-breakdown');
-  if (breakdownEl) {
-    // Driven off the metrics array, never off hard-coded keys. The previous
-    // version listed Coverage/Relationships/Ownership/Documentation/Freshness by
-    // name; when the metric set was replaced, three of those keys no longer
-    // existed and the UI rendered "undefined" in front of the client. Reading
-    // the array means the display always matches whatever the model computes.
-    const rows = (m.__explainable ? m.__explainable.metrics : []).map(met => ({
-      label: met.plainLabel || met.label,
-      v: met.value,
-      hint: met.plainWhat || met.meaning || '',
-    }));
-    if (!rows.length) {
-      rows.push({ label: 'Overall', v: m.overall, hint: 'composite score' });
-    }
-    breakdownEl.innerHTML = rows.map(r => {
-      const tn = maturityTone(r.v);
-      return `
-        <div class="health-row" title="${r.hint}">
-          <span class="health-row-label">${r.label}</span>
-          <span class="health-row-bar" data-tone="${tn.tone}" style="--w: ${r.v}%"></span>
-          <span class="health-row-val">${r.v}</span>
-        </div>`;
-    }).join('');
-    requestAnimationFrame(() => {
-      breakdownEl.querySelectorAll('.health-row-bar').forEach(el => {
-        const cs = el.style.getPropertyValue('--w');
-        el.style.setProperty('--w', '0%');
-        requestAnimationFrame(() => el.style.setProperty('--w', cs));
-      });
-    });
+    // Arcs animate via CSS custom properties; flipping the class on the next
+    // frame guarantees the transition fires on every render, not just the first.
+    requestAnimationFrame(() => host.classList.add('is-drawn'));
+  } catch (err) {
+    console.warn('[fabric] maturity rings unavailable:', err.message);
   }
 }
 

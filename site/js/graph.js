@@ -104,7 +104,12 @@ export class KnowledgeGraph {
     // Auto-fit after stabilization
     this.network.once('stabilizationIterationsDone', () => {
       this.network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+      this.bindResponsive();
     });
+
+    // Stabilization can be slow on a phone; bind regardless so a rotation
+    // before it finishes still refits.
+    setTimeout(() => this.bindResponsive(), 1200);
 
     // Re-color nodes + edges when theme toggles
     this._lastTrace = null;
@@ -125,6 +130,72 @@ export class KnowledgeGraph {
   // Reasoning trace: highlight entities that appear in the retrieved chunks,
   // plus their direct neighbors, and the edges connecting them.
   // ===========================================================================
+  // --- responsive -----------------------------------------------------
+  // vis-network sizes its viewport once and does not re-fit when the container
+  // changes shape. On a phone that left the graph rendered at desktop scale and
+  // cropped to a corner — which is why it read as faint wallpaper rather than
+  // the centrepiece it is. Re-fit on resize and on orientation change, debounced.
+  bindResponsive() {
+    if (this._responsiveBound) return;
+    this._responsiveBound = true;
+
+    const refit = () => {
+      if (!this.network) return;
+      try {
+        this.network.redraw();
+        this.network.fit({ animation: { duration: 420, easingFunction: 'easeOutQuad' } });
+        this.applyViewportScale();
+      } catch (_) { /* network not ready yet */ }
+    };
+
+    let t = null;
+    const debounced = () => { clearTimeout(t); t = setTimeout(refit, 180); };
+
+    window.addEventListener('resize', debounced, { passive: true });
+    window.addEventListener('orientationchange', () => setTimeout(refit, 320));
+
+    if (typeof ResizeObserver !== 'undefined' && this.container) {
+      this._ro = new ResizeObserver(debounced);
+      this._ro.observe(this.container);
+    }
+    this.applyViewportScale();
+  }
+
+  // Label density has to fall on small screens or the canvas becomes a grey
+  // smear of overlapping text. Below 640px only the strongest nodes keep labels.
+  applyViewportScale() {
+    if (!this.network || !this.nodes) return;
+    const w = window.innerWidth;
+    const compact = w < 640;
+    const medium = w >= 640 && w < 1024;
+
+    try {
+      this.network.setOptions({
+        nodes: { font: { size: compact ? 15 : medium ? 13 : 12 } },
+        edges: { width: compact ? 0.6 : 0.5 },
+        physics: { stabilization: { iterations: compact ? 120 : 200 } },
+      });
+
+      if (compact && !this._labelsThinned) {
+        const updates = [];
+        this.nodes.forEach(n => {
+          const keep = (n.value || 0) >= 3 || n.__activated;
+          updates.push({ id: n.id, label: keep ? (n.__label ?? n.label) : ' ' });
+          if (n.__label === undefined) n.__label = n.label;
+        });
+        this.nodes.update(updates);
+        this._labelsThinned = true;
+      } else if (!compact && this._labelsThinned) {
+        const updates = [];
+        this.nodes.forEach(n => {
+          if (n.__label !== undefined) updates.push({ id: n.id, label: n.__label });
+        });
+        this.nodes.update(updates);
+        this._labelsThinned = false;
+      }
+    } catch (_) { /* options rejected — leave defaults */ }
+  }
+
   highlightTrace(retrievedChunkIds) {
     this._lastTrace = [...retrievedChunkIds];
     const activeEntityIds = new Set();
