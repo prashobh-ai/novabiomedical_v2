@@ -20,11 +20,15 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+from pathlib import Path as _Path
+
 from .bm25_index import build_bm25_index
 from .chunker import Chunk, tokenize
 from .connectors.base import registry_from
+from .docmeta import resolve as resolve_date
 from .graph import build_knowledge_graph
 from .semantic import build_semantic_index
+from .textnorm import analyse, build_vocabulary, chunk_quality, normalize
 
 TARGET_CHARS = 700
 
@@ -120,16 +124,30 @@ def build(source_dir: Path, fda_dir: Path, out_path: Path, semantic_path: Path) 
         print(f"      {c.name:28s} {len(got):>6} records  [{c.source_type}]")
     print(f"      {'TOTAL':28s} {len(records):>6} records")
 
-    print("\n[2/6] Chunking")
+    # ---- Text normalisation -------------------------------------------------
+    # Runs before chunking so that BM25, LSA and the graph all index repaired
+    # text. Repairing at query time would be too late: the indexes would already
+    # have been built over "point -of-care" and "Mea surement".
+    print("\n[2/7] Normalising text")
+    vocab = build_vocabulary([r.text for r in records])
+    repaired = 0
+    for r in records:
+        cleaned = normalize(r.text, vocab)
+        if cleaned != r.text:
+            repaired += 1
+        r.text = cleaned
+    print(f"      corpus lexicon {len(vocab)} words · {repaired}/{len(records)} records repaired")
+
+    print("\n[3/7] Chunking")
     chunks, aligned = records_to_chunks(records)
     docs_n = sum(1 for r in aligned if r.source_type == "document")
     print(f"      {len(chunks)} chunks  ({docs_n} from documents, {len(chunks)-docs_n} structured)")
 
-    print("\n[3/6] Lexical index (BM25)")
+    print("\n[4/7] Lexical index (BM25)")
     bm25 = build_bm25_index(chunks)
     print(f"      vocab={len(bm25['vocab'])}  avgdl={bm25['avgdl']:.1f}")
 
-    print("\n[4/6] Semantic index (LSA)")
+    print("\n[5/7] Semantic index (LSA)")
     semantic = build_semantic_index([c.text for c in chunks])
     if semantic.get("enabled"):
         print(f"      dims={semantic['dims']}  vocab={semantic['stats']['vocabulary']}  "
@@ -137,7 +155,7 @@ def build(source_dir: Path, fda_dir: Path, out_path: Path, semantic_path: Path) 
     else:
         print(f"      disabled: {semantic.get('reason')}")
 
-    print("\n[5/6] Knowledge graph")
+    print("\n[6/7] Knowledge graph")
     graph = build_knowledge_graph(aligned, [c.chunk_id for c in chunks])
     gs = graph["stats"]
     print(f"      {gs['node_count']} nodes  {gs['edge_count']} edges  "
@@ -145,7 +163,7 @@ def build(source_dir: Path, fda_dir: Path, out_path: Path, semantic_path: Path) 
     for et, n in sorted(gs["edges_by_type"].items(), key=lambda kv: -kv[1]):
         print(f"        {et:20s} {n}")
 
-    print("\n[6/6] Assembling index")
+    print("\n[7/7] Assembling index")
 
     # The browser reads entities using the Phase 1 field names (mention_count,
     # chunk_ids, document_ids). Those names are a published contract: graph.js,
@@ -189,6 +207,12 @@ def build(source_dir: Path, fda_dir: Path, out_path: Path, semantic_path: Path) 
                 chunk_entities[i].append(n["id"])
 
     documents_meta: dict = {}
+    doc_text_head: dict = {}
+    for c, rec in zip(chunks, aligned):
+        doc_text_head.setdefault(c.document_name, "")
+        if len(doc_text_head[c.document_name]) < 4000:
+            doc_text_head[c.document_name] += " " + c.text
+
     for c, rec in zip(chunks, aligned):
         d = documents_meta.setdefault(c.document_name, {
             "id": c.document_id, "name": c.document_name,
@@ -198,17 +222,44 @@ def build(source_dir: Path, fda_dir: Path, out_path: Path, semantic_path: Path) 
             "doc_type": rec.metadata.get("doc_type", rec.metadata.get("record_type", "")),
             "url": rec.url, "page_count": rec.metadata.get("page_count", 1),
             "chunk_count": 0,
+            **{f"date_{k}": v for k, v in resolve_date(
+                source_path=_Path(rec.metadata["source_path"])
+                if rec.metadata.get("source_path") else None,
+                text=doc_text_head.get(c.document_name, ""),
+                regulatory_date=rec.metadata.get("decision_date")
+                or rec.metadata.get("date_initiated")
+                or rec.metadata.get("publish_date")
+                or rec.metadata.get("created_date"),
+            ).items()},
         })
         d["chunk_count"] += 1
 
-    serialized = [{
-        "id": c.chunk_id, "document_id": c.document_id, "document_name": c.document_name,
-        "page": c.page, "section_path": c.section_path,
-        "paragraph_indices": c.paragraph_indices, "text": c.text,
-        "paragraph_excerpt": c.paragraph_excerpt, "entities": chunk_entities[i],
-        "source_type": rec.source_type, "source_system": rec.source_system,
-        "url": rec.url, "meta": rec.metadata,
-    } for i, (c, rec) in enumerate(zip(chunks, aligned))]
+    # Sentence layer. Shipped as offsets rather than duplicated strings — the
+    # client slices chunk.text, so this costs ~4 numbers per sentence instead of
+    # a second copy of the corpus.
+    serialized = []
+    kind_counts: dict = defaultdict(int)
+    for i, (c, rec) in enumerate(zip(chunks, aligned)):
+        infos = analyse(c.text)
+        for si in infos:
+            kind_counts[si.kind] += 1
+        serialized.append({
+            "id": c.chunk_id, "document_id": c.document_id, "document_name": c.document_name,
+            "page": c.page, "section_path": c.section_path,
+            "paragraph_indices": c.paragraph_indices, "text": c.text,
+            "paragraph_excerpt": c.paragraph_excerpt, "entities": chunk_entities[i],
+            "source_type": rec.source_type, "source_system": rec.source_system,
+            "url": rec.url, "meta": rec.metadata,
+            "quality": chunk_quality(infos),
+            "sents": [{"o": si.offset, "l": si.length, "k": si.kind, "q": si.quality}
+                      for si in infos],
+        })
+    total_sents = sum(kind_counts.values())
+    usable = kind_counts.get("prose", 0)
+    print(f"      sentences {total_sents} · usable prose {usable} "
+          f"({usable / max(total_sents, 1):.0%})")
+    for k, n in sorted(kind_counts.items(), key=lambda kv: -kv[1]):
+        print(f"        {k:10} {n}")
 
     index = {
         "version": "2.0",
