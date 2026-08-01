@@ -102,6 +102,7 @@ class DocumentConnector:
                         "k_number": k_number,
                         "page_count": parsed.page_count,
                         "paragraph_index": para.paragraph_index,
+                        "source_path": str(path),
                     },
                     entities=([("Product", product)] if product != "Unclassified" else [])
                              + ([("Clearance", k_number)] if k_number else []),

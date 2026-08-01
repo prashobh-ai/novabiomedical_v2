@@ -225,6 +225,7 @@ class FDARegulatoryConnector:
                     "model": model,
                     "product_codes": codes,
                     "distribution_status": status,
+                    "publish_date": sanitize(r.get("publish_date")),
                 },
                 entities=[("Product", brand), ("ProductCode", codes.split(";")[0].strip() if codes else "")],
             )
