@@ -1,9 +1,9 @@
 /* ============================================================================
-   Knowledge Fabric · Command Center — Nova Biomedical dual-theme mission control
+   Knowledge Fabric · Command Center — dual-theme mission control
    ============================================================================ */
 
 :root {
-  /* ===== Nova Biomedical brand (theme-invariant) ===== */
+  /* ===== Client brand accents (theme-invariant, set per engagement) ===== */
   --qz-blue: #4D7CFF;
   --qz-blue-deep: #2E5DDB;
   --qz-blue-soft: rgba(77, 124, 255, 0.16);
@@ -13,7 +13,7 @@
   --qz-violet: #7B5BFF;
   --qz-cyan: #4DD0E8;
 
-  /* ===== Navbar (consistent across themes — mirrors novabiomedical.com) ===== */
+  /* ===== Navbar (consistent across themes — mirrors the client's own site) ===== */
   --nav-bg: #F8F9FB;
   --nav-text: #1A1F36;
   --nav-text-dim: #5C6788;
@@ -253,7 +253,7 @@ body.narrative {
 }
 
 /* ============================================================================
-   NOVA BIOMEDICAL NAVBAR — slim white strip with wordmark, demo label, brand CTAs
+   CLIENT NAVBAR — slim white strip: client wordmark, product, demonstrator credit
    ============================================================================ */
 .qz-navbar {
   display: flex;
@@ -3362,4 +3362,324 @@ body.narrative .theme-toggle { display: none !important; }
   .derivation-panel { padding: 1.1rem 1rem; }
   .health-verdict { margin-left: 1rem; margin-right: 1rem; }
   .answer-opener { font-size: 0.9rem; }
+}
+
+/* ==========================================================================
+   PHASE 2.3 — DESIGN SYSTEM PASS
+   ==========================================================================
+   Written in four layers, in dependency order:
+     1. tokens      fluid type/space scale, refreshed palette
+     2. lockup      brand hierarchy — client first, product second
+     3. components  answer, graph story, heatmap, buttons
+     4. adaptive    360px phone through 2560px display
+   ========================================================================== */
+
+/* ---------- 1. TOKENS ---------------------------------------------------- */
+:root {
+  /* Fluid type: one scale that interpolates between a 360px phone and a 1600px
+     display, so nothing needs a font-size breakpoint. clamp() bounds it at both
+     ends — text stays legible on a phone and stops growing absurdly on a TV. */
+  --fs-micro:  clamp(0.62rem, 0.58rem + 0.18vw, 0.72rem);
+  --fs-small:  clamp(0.76rem, 0.72rem + 0.20vw, 0.86rem);
+  --fs-body:   clamp(0.90rem, 0.86rem + 0.24vw, 1.02rem);
+  --fs-lead:   clamp(1.02rem, 0.95rem + 0.40vw, 1.20rem);
+  --fs-h3:     clamp(1.20rem, 1.05rem + 0.72vw, 1.65rem);
+  --fs-h2:     clamp(1.65rem, 1.30rem + 1.70vw, 2.90rem);
+  --fs-hero:   clamp(2.30rem, 1.50rem + 4.20vw, 5.20rem);
+
+  /* Spacing on a 4px grid, fluid at the larger end */
+  --sp-1: 0.25rem;  --sp-2: 0.5rem;   --sp-3: 0.75rem;  --sp-4: 1rem;
+  --sp-5: 1.5rem;   --sp-6: 2rem;     --sp-7: 3rem;
+  --sp-8: clamp(3rem, 2rem + 4vw, 5rem);
+  --sp-9: clamp(4rem, 2.5rem + 7vw, 8rem);
+
+  /* Reading measure — prose past ~72ch loses the reader's line-return */
+  --measure: 68ch;
+  --measure-tight: 54ch;
+
+  /* Palette refresh: same brand hues, slightly deeper and less saturated in the
+     mid-tones so white text sits at a higher contrast ratio and the accents
+     read as accents rather than competing with the content. */
+  --surface-0: #0B1338;
+  --surface-1: #111C4A;
+  --surface-2: #17245C;
+  --surface-raised: rgba(255, 255, 255, 0.035);
+  --surface-sunken: rgba(0, 0, 0, 0.22);
+  --hairline: rgba(150, 170, 255, 0.16);
+  --hairline-strong: rgba(150, 170, 255, 0.30);
+
+  --ink-1: #F2F5FD;   /* headings */
+  --ink-2: #D3DAF0;   /* body */
+  --ink-3: #A2AECD;   /* secondary */
+  --ink-4: #7B87A8;   /* meta */
+
+  --accent: #5B86FF;
+  --accent-soft: rgba(91, 134, 255, 0.14);
+  --signal: #FF2E6B;
+  --positive: #47D6A6;
+  --caution: #F6B44C;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 140ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;
+
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+}
+
+/* ---------- 2. BRAND LOCKUP ---------------------------------------------
+   Hierarchy: client (largest) > product > demonstrator (smallest).
+   Nothing here is keyed to the client's NAME — only to its slot — so a longer or
+   shorter client name inherits identical treatment. Verified by a test that fails
+   if any client name appears anywhere in this stylesheet. */
+.qz-navbar { gap: var(--sp-4); }
+
+.qz-brand { text-decoration: none; flex-shrink: 0; }
+.qz-client {
+  display: block;
+  font-size: clamp(1.05rem, 0.95rem + 0.55vw, 1.5rem);
+  font-weight: 800;
+  letter-spacing: -0.022em;
+  line-height: 1.05;
+  color: var(--nav-text, #1A1F36);
+  white-space: nowrap;
+  transition: opacity var(--dur) var(--ease-soft);
+}
+.qz-brand:hover .qz-client { opacity: 0.72; }
+
+.qz-divider {
+  width: 1px; align-self: stretch; margin: 0.55rem 0;
+  background: linear-gradient(180deg, transparent, var(--nav-border, #E5E8EE), transparent);
+  flex-shrink: 0;
+}
+
+.qz-context { display: flex; flex-direction: column; gap: 0.08rem; min-width: 0; }
+.qz-product {
+  font-size: clamp(0.78rem, 0.72rem + 0.24vw, 0.95rem);
+  font-weight: 700; letter-spacing: -0.008em; line-height: 1.15;
+  color: var(--nav-text, #1A1F36);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.qz-demoby { display: flex; flex-direction: column; line-height: 1.25; }
+.qz-demoby > span {
+  font-size: var(--fs-micro); font-weight: 600; letter-spacing: 0.055em;
+  text-transform: uppercase; color: var(--nav-text-dim, #5C6788);
+  white-space: nowrap;
+}
+.qz-demoby > small {
+  font-size: 0.56rem; font-weight: 600; letter-spacing: 0.10em;
+  text-transform: uppercase; color: var(--nav-text-dim, #5C6788);
+  opacity: 0.62; white-space: nowrap;
+}
+
+/* ---------- 3. COMPONENTS ------------------------------------------------ */
+
+/* Assurance line — a checkable claim, placed with the evidence it describes */
+.answer-assurance {
+  margin: var(--sp-4) 0 0;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--hairline);
+  font-size: var(--fs-small);
+  color: var(--ink-4);
+  line-height: 1.55;
+  max-width: var(--measure);
+}
+.answer-assurance::before {
+  content: "";
+  display: inline-block; width: 0.62em; height: 0.62em; margin-right: 0.5em;
+  border-radius: 50%; background: var(--positive);
+  box-shadow: 0 0 0 3px rgba(71, 214, 166, 0.16);
+  vertical-align: middle;
+}
+
+/* Answer readability: a measure, generous leading, clear sentence rhythm */
+.answer-a-text { max-width: var(--measure); }
+.answer-body { font-size: var(--fs-body); line-height: 1.85; color: var(--ink-2); }
+.answer-opener { font-size: var(--fs-lead); max-width: var(--measure); }
+.answer-sent + .answer-sent { margin-left: 0.15em; }
+
+/* Graph purpose — the standing "what am I looking at" panel */
+.graph-purpose {
+  max-width: 640px; margin-top: var(--sp-5);
+  padding: var(--sp-4) var(--sp-5);
+  background: linear-gradient(135deg, rgba(91,134,255,0.10), rgba(255,46,107,0.06));
+  border: 1px solid var(--hairline); border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  backdrop-filter: blur(10px);
+  animation: gp-in var(--dur-slow) var(--ease-out) both;
+}
+@keyframes gp-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.gp-headline {
+  margin: 0 0 var(--sp-2); font-size: var(--fs-body); font-weight: 650;
+  color: var(--ink-1); line-height: 1.4; letter-spacing: -0.01em;
+}
+.gp-body { margin: 0; font-size: var(--fs-small); color: var(--ink-3); line-height: 1.6; }
+.gp-stats { display: flex; flex-wrap: wrap; gap: var(--sp-5); margin-top: var(--sp-3); }
+.gp-stat { font-size: var(--fs-micro); color: var(--ink-4); letter-spacing: 0.02em; }
+.gp-stat b {
+  display: block; font-size: var(--fs-h3); font-weight: 700;
+  color: var(--accent); line-height: 1.1; font-variant-numeric: tabular-nums;
+}
+
+/* Graph contribution — the per-answer story */
+.graph-value-wrap { max-width: 1100px; margin: var(--sp-5) auto 0; padding: 0 var(--sp-4); }
+.graph-value {
+  padding: var(--sp-5) var(--sp-6);
+  background: var(--surface-raised);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 70px -40px rgba(0,0,0,0.95);
+  animation: gp-in var(--dur-slow) var(--ease-out) both;
+}
+.gv-eyebrow {
+  font-size: var(--fs-micro); font-weight: 700; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--signal);
+}
+.gv-lead {
+  margin: var(--sp-3) 0 0; font-size: var(--fs-body); line-height: 1.7;
+  color: var(--ink-2); max-width: var(--measure);
+}
+.gv-lead strong { color: var(--ink-1); font-weight: 650; }
+.gv-lead em { color: var(--accent); font-style: normal; font-weight: 600; }
+.gv-cross {
+  margin: var(--sp-3) 0 0; font-size: var(--fs-small); color: var(--ink-3);
+  line-height: 1.6; max-width: var(--measure);
+}
+.gv-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-4); }
+.gv-chip {
+  display: inline-flex; flex-direction: column; gap: 0.1rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--surface-sunken); border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur) var(--ease-soft), transform var(--dur) var(--ease-out);
+}
+.gv-chip:hover { border-color: var(--hairline-strong); transform: translateY(-1px); }
+.gv-chip-kind {
+  font-size: 0.58rem; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--ink-4); font-weight: 600;
+}
+.gv-chip-name { font-size: var(--fs-small); font-weight: 650; color: var(--ink-1); }
+.gv-chip-reach { font-size: 0.6rem; color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.gv-metric {
+  margin: var(--sp-4) 0 0; padding: var(--sp-3) var(--sp-4);
+  background: rgba(71, 214, 166, 0.08);
+  border-left: 2px solid var(--positive);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: var(--fs-small); color: var(--ink-2); line-height: 1.55;
+}
+.gv-metric strong { color: var(--positive); font-size: var(--fs-lead); font-weight: 700; }
+.gv-tech { margin: 0.4rem 0 0; font-size: var(--fs-small); color: var(--ink-4); line-height: 1.6; }
+
+/* Heatmap: collapsed by default */
+.hm-toggle {
+  display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+  width: 100%; margin-top: var(--sp-4); padding: var(--sp-3) var(--sp-4);
+  background: var(--surface-sunken); border: 1px dashed var(--hairline);
+  border-radius: var(--radius-sm); color: var(--ink-3);
+  font: inherit; cursor: pointer;
+  transition: background var(--dur) var(--ease-soft), border-color var(--dur) var(--ease-soft),
+              color var(--dur) var(--ease-soft);
+}
+.hm-toggle:hover {
+  background: var(--accent-soft); border-color: var(--hairline-strong); color: var(--ink-1);
+}
+.hm-toggle-label { font-size: var(--fs-small); font-weight: 650; letter-spacing: 0.01em; }
+.hm-toggle-sub { font-size: var(--fs-micro); color: var(--ink-4); }
+.hm-row-extra { animation: hm-in var(--dur) var(--ease-out) both; }
+@keyframes hm-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* Buttons: a consistent press model everywhere */
+.why-btn, .hm-toggle, .qz-cta, .chip, .tab {
+  will-change: transform;
+}
+.why-btn:active, .hm-toggle:active, .chip:active { transform: translateY(1px) scale(0.995); }
+.qz-cta {
+  position: relative; overflow: hidden;
+  transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-soft);
+}
+.qz-cta::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.28), transparent 70%);
+  transform: translateX(-110%);
+  transition: transform var(--dur-slow) var(--ease-soft);
+}
+.qz-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 26px -12px rgba(255,46,107,0.75); }
+.qz-cta:hover::after { transform: translateX(110%); }
+
+/* Focus visibility — one ring, everywhere, meets WCAG 2.4.7 */
+a:focus-visible, button:focus-visible, input:focus-visible,
+summary:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--positive); outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- 4. ADAPTIVE -------------------------------------------------- */
+
+/* Phones — the navbar is the tightest constraint: three brand tiers plus nav
+   cannot coexist, so the demonstrator credit drops to one line and the section
+   nav collapses. Client name never shrinks below legibility. */
+@media (max-width: 640px) {
+  .qz-navbar { flex-wrap: wrap; padding: 0.6rem 0.9rem; gap: 0.55rem; }
+  .qz-divider { display: none; }
+  .qz-context { flex-basis: 100%; order: 3; flex-direction: row; align-items: baseline; gap: 0.5rem; }
+  .qz-demoby > small { display: none; }
+  .qz-nav { order: 2; margin-left: auto; }
+  .qz-nav .nav-scroll { display: none; }
+
+  .graph-purpose { max-width: none; margin-inline: 0; border-radius: var(--radius); }
+  .gp-stats { gap: var(--sp-4); }
+  .graph-value { padding: var(--sp-4); }
+  .gv-chips { gap: 0.35rem; }
+  .gv-chip { flex: 1 1 auto; min-width: 0; }
+  .answer-assurance { font-size: var(--fs-micro); }
+  .hm-label { max-width: 42vw; }
+}
+
+/* Small tablets */
+@media (min-width: 641px) and (max-width: 900px) {
+  .qz-nav .nav-scroll { display: none; }
+  .graph-purpose { max-width: 560px; }
+}
+
+/* Large desktop — widen the shell but hold the reading measure, so lines never
+   stretch past the point where the eye loses its return. */
+@media (min-width: 1600px) {
+  .graph-value-wrap, .derivation-panel, .health-derive-wrap { max-width: 1280px; }
+  .graph-purpose { max-width: 720px; }
+}
+
+/* TV / very large displays — viewed from distance, so scale up the whole shell
+   rather than only the type. */
+@media (min-width: 2200px) {
+  :root { --fs-body: 1.15rem; --fs-small: 0.95rem; --fs-micro: 0.8rem; --measure: 74ch; }
+  .graph-value-wrap, .derivation-panel { max-width: 1560px; }
+  .qz-navbar { padding-inline: 4vw; }
+}
+
+/* Short landscape (laptop in a meeting room, phone rotated) — reclaim
+   vertical space rather than forcing a scroll to reach the ask box. */
+@media (max-height: 620px) and (orientation: landscape) {
+  .graph-purpose { display: none; }
+  .hero-sub { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+}
+
+/* Print / PDF export — reviewers do circulate these */
+@media print {
+  .qz-navbar, .qz-nav, .section-nav, .sticky-ask, .hm-toggle { display: none !important; }
+  .derivation-panel, .graph-value { break-inside: avoid; border-color: #999; }
+  .tech-detail[open] .tech-detail-body { display: block; }
+  body { background: #fff; color: #111; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph-purpose, .graph-value, .hm-row-extra { animation: none; }
+  .qz-cta::after { display: none; }
+  .why-btn:active, .hm-toggle:active, .chip:active { transform: none; }
+}
+
+@media (prefers-contrast: more) {
+  :root { --ink-3: #C4CDE6; --ink-4: #A6B0CC; --hairline: rgba(170,190,255,0.34); }
 }
