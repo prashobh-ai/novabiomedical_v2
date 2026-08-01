@@ -9,6 +9,7 @@ import { initInsights } from './insights.js?v=5';
 import { initLineage, renderLineage } from './lineage.js?v=5';
 import { initExplain, openExplain } from './explain.js?v=5';
 import { matchQuestionBank, QUESTION_BANK } from './questionbank.js?v=5';
+import { Typeahead } from './typeahead.js?v=12';
 import { loadSemanticIndex } from './semantic.js?v=6';
 import { hybridSearch, explainRanking } from './hybrid.js?v=6';
 import { renderConfidenceBreakdown } from './confidence.js?v=7';
@@ -80,6 +81,7 @@ async function boot() {
   setupGalaxy();
   setupCopilot();
   setupSuggestions();
+  setupTypeahead();
   setupDerivationToggles();
 
   initLineage({ onChunkClick: id => showChunkDetail(state.chunksById.get(id)) });
@@ -501,11 +503,14 @@ function setupCopilot() {
     e.preventDefault();
     const q = input.value.trim();
     if (!q) return;
-    input.value = '';
+    // The box keeps the question. Clearing it left the reader with an answer and
+    // no visible record of what produced it — and made re-asking a variant mean
+    // retyping from scratch.
     submit.disabled = true;
+    input.blur();
     await ask(q);
     submit.disabled = false;
-    input.focus();
+    input.select();
   });
 }
 
@@ -526,10 +531,48 @@ function setupDerivationToggles() {
   }
 }
 
+// The question bank drives the typeahead. Every suggestion is a question we have
+// tested, so a reviewer poking at this on their phone mid-call is steered toward
+// known-good answers instead of finding an edge case live.
+function bankQuestions() {
+  return QUESTION_BANK
+    .map(q => (typeof q === 'string' ? q : (q.question || q.q || q.text)))
+    .filter(Boolean);
+}
+
+function setupTypeahead() {
+  const bank = bankQuestions();
+  state.typeaheads = [];
+
+  for (const [inputId, formId] of [['composer-input', 'composer-form'],
+                                   ['sticky-ask-input', 'sticky-ask-form']]) {
+    const input = document.getElementById(inputId);
+    if (!input) continue;
+    const ta = new Typeahead(input, bank, (question) => {
+      const form = document.getElementById(formId);
+      if (form) form.dispatchEvent(new Event('submit'));
+      else askFromInput(input);
+    });
+    state.typeaheads.push(ta);
+  }
+}
+
+function askFromInput(input) {
+  const q = input.value.trim();
+  if (q) ask(q);
+}
+
 function setupSuggestions() {
   document.querySelectorAll('#suggestions .chip').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.getElementById('composer-input').value = btn.textContent.trim();
+      const input = document.getElementById('composer-input');
+      const question = btn.textContent.trim();
+      // Put the question IN the box and leave it there. Previously the value was
+      // set and cleared on submit within the same tick, so the user never saw
+      // what had been asked — the answer appeared with an empty box above it.
+      input.value = question;
+      input.classList.add('is-autofilled');
+      setTimeout(() => input.classList.remove('is-autofilled'), 700);
       document.getElementById('composer-form').dispatchEvent(new Event('submit'));
     });
   });
