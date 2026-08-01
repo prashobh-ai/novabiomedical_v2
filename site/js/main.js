@@ -13,7 +13,9 @@ import { loadSemanticIndex } from './semantic.js?v=6';
 import { hybridSearch, explainRanking } from './hybrid.js?v=6';
 import { renderConfidenceBreakdown } from './confidence.js?v=7';
 import { computeHealth, renderHealthDerivation, healthNarrative } from './health.js?v=8';
-import { BRAND, COPY, applyBrand } from './brand.js?v=8';
+import { BRAND, COPY, applyBrand } from './brand.js?v=9';
+import { explainGraphContribution, renderGraphContribution, graphPurposeCopy }
+  from './graphvalue.js?v=9';
 
 const INDEX_URL = 'data/index.json';
 
@@ -68,6 +70,7 @@ async function boot() {
   });
 
   applyBrand(document);
+  renderGraphPurpose();
   renderCommandTiles();
   renderMaturityScore();
   renderHealthExplainer();
@@ -277,6 +280,40 @@ function maturityTone(score) {
   if (score >= 80) return { tone: '', stroke: 'var(--sem-green)' };
   if (score >= 60) return { tone: 'warn', stroke: 'var(--sem-amber)' };
   return { tone: 'risk', stroke: 'var(--sem-pink)' };
+}
+
+// The graph's standing explanation — shown before any question, so a first-time
+// viewer knows what the map is FOR rather than just that it looks impressive.
+function renderGraphPurpose() {
+  const host = document.getElementById('graph-purpose');
+  if (!host || !state.index) return;
+  try {
+    const p = graphPurposeCopy(state.index);
+    document.getElementById('gp-headline').textContent = p.headline;
+    document.getElementById('gp-body').textContent = p.body;
+    document.getElementById('gp-stats').innerHTML =
+      `<span class="gp-stat"><b>${p.stat}</b> ${p.statLabel}</span>` +
+      `<span class="gp-stat"><b>${p.stat2}</b> ${p.stat2Label}</span>`;
+    host.hidden = false;
+  } catch (err) {
+    console.warn('[fabric] graph purpose unavailable:', err.message);
+  }
+}
+
+// What the graph contributed to the answer just produced.
+function renderGraphValue(citations, analysis) {
+  const host = document.getElementById('graph-value-wrap');
+  if (!host || !state.index) return;
+  try {
+    const contribution = explainGraphContribution(citations, state.index, analysis);
+    if (!contribution) { host.hidden = true; host.innerHTML = ''; return; }
+    host.innerHTML = renderGraphContribution(contribution);
+    host.hidden = false;
+    state.graphContribution = contribution;
+  } catch (err) {
+    host.hidden = true;
+    console.warn('[fabric] graph contribution unavailable:', err.message);
+  }
 }
 
 function renderHealthExplainer() {
@@ -675,6 +712,7 @@ async function ask(question, opts = {}) {
                        summary: result.summary };
 
   populateAnswerStage(question, answerHtml, citations, ranked, trace, cohesion);
+  renderGraphValue(citations, result.analysis);
   if (!silent) appendAssistantMessage(question, answerHtml, citations, ranked, trace);
   renderLineage(question, answerHtml, citations);
   updateCopilotMetrics(citations, trace, ranked, cohesion);

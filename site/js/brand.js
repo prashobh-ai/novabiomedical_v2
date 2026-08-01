@@ -34,18 +34,32 @@ export const BRAND = {
   stage: 'MVP',
 
   // ---- assembled strings --------------------------------------------------
-  get navContext() { return 'Built by ' + this.builder.name + ' ' + this.builder.unitShort; },
-  get heroEyebrow() {
-    return this.builder.name + ' ' + this.builder.unitShort + ' — ' + this.stage +
-           ' for ' + this.client.name;
-  },
+  // ---- brand hierarchy ----------------------------------------------------
+  // Order of prominence, deliberately: the CLIENT first, the product second,
+  // the demonstrator third. The client name is rendered as a pure placeholder —
+  // swapping it changes the text and nothing else. No font, size, weight or
+  // colour is tied to the string "Nova Biomedical", so the lockup holds its
+  // proportions for any client name of any length.
+  get clientName()   { return this.client.name; },
+  get productName()  { return this.product; },
+  get demoBy()       { return 'Demonstration by ' + this.builder.name; },
+  get demoByUnit()   { return this.builder.unit; },
+
   get footerBrand() {
-    return this.product + ' — a ' + this.builder.name + ' ' + this.builder.unit +
-           ' build, delivered for ' + this.client.name;
+    // "delivered" overclaims at demo stage — this is a demonstration, not a
+    // handover, and a director will notice the difference.
+    return this.product + ' — a demonstration prepared for ' + this.client.name +
+           ' by ' + this.builder.name + ' ' + this.builder.unitShort + '.';
   },
   get footerNote() {
-    return 'Every answer traced to its source document and page. No content generated, ' +
-           'nothing paraphrased.';
+    return '\u00A9 ' + new Date().getFullYear() + ' ' + this.builder.name +
+           '. Prepared for evaluation purposes.';
+  },
+  // Belongs beside the answer, where it is a claim the reader can check — not in
+  // the footer, where it is an unverifiable boast.
+  get answerAssurance() {
+    return 'Every statement below is quoted from your documents and linked to the page ' +
+           'it came from. Nothing is generated or paraphrased.';
   },
 };
 
@@ -119,11 +133,13 @@ export const COPY = {
 export function applyBrand(root = document) {
   const map = {
     product: BRAND.product,
-    navContext: BRAND.navContext,
-    heroEyebrow: BRAND.heroEyebrow,
+    productName: BRAND.productName,
+    clientName: BRAND.clientName,
+    demoBy: BRAND.demoBy,
+    demoByUnit: BRAND.demoByUnit,
     footerBrand: BRAND.footerBrand,
     footerNote: BRAND.footerNote,
-    clientName: BRAND.client.name,
+    answerAssurance: BRAND.answerAssurance,
     builderName: BRAND.builder.name,
   };
   for (const el of root.querySelectorAll('[data-brand]')) {

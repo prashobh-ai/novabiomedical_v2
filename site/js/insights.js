@@ -47,23 +47,57 @@ function renderHeatmap() {
   const max = Math.max(...rows.map(r => r.density), 1);
   rows.sort((a, b) => b.density - a.density);
 
+  // 391 documents rendered as 391 bars turned this panel into an endless scroll,
+  // which buried every section below it. Show the meaningful head of the
+  // distribution, summarise the tail, and let the reader expand on demand.
+  const INITIAL = 12;
+  const head = rows.slice(0, INITIAL);
+  const tail = rows.slice(INITIAL);
+  const tailChunks = tail.reduce((a, r) => a + r.chunks, 0);
+
+  const rowHtml = (r, hidden) => {
+    const pct = Math.max(8, Math.round((r.density / max) * 100));
+    return `
+      <div class="hm-row${hidden ? ' hm-row-extra' : ''}"${hidden ? ' hidden' : ''}>
+        <span class="hm-label" title="${escapeHtml(r.name)}">${escapeHtml(stripExt(r.name))}</span>
+        <div class="hm-track">
+          <div class="hm-fill" style="width:${pct}%">
+            <span class="hm-value">${r.chunks}c · ${r.entities}e</span>
+          </div>
+        </div>
+      </div>`;
+  };
+
   const html = `
     <div class="heatmap">
-      <p class="heatmap-intro">Coverage by domain — chunks indexed and entities surfaced per document.</p>
-      ${rows.map(r => {
-        const pct = Math.max(8, Math.round((r.density / max) * 100));
-        return `
-          <div class="hm-row">
-            <span class="hm-label" title="${escapeHtml(r.name)}">${escapeHtml(stripExt(r.name))}</span>
-            <div class="hm-track">
-              <div class="hm-fill" style="width:${pct}%">
-                <span class="hm-value">${r.chunks}c · ${r.entities}e</span>
-              </div>
-            </div>
-          </div>`;
-      }).join('')}
+      <p class="heatmap-intro">
+        Where your knowledge concentrates. Each bar is one document, sized by how much
+        retrievable material it contributes — the densest ${INITIAL} are shown first.
+      </p>
+      ${head.map(r => rowHtml(r, false)).join('')}
+      ${tail.length ? tail.map(r => rowHtml(r, true)).join('') : ''}
+      ${tail.length ? `
+        <button class="hm-toggle" id="hm-toggle" type="button"
+                aria-expanded="false" aria-controls="panel-heatmap"
+                data-more="Show all ${rows.length} documents"
+                data-less="Show top ${INITIAL} only">
+          <span class="hm-toggle-label">Show all ${rows.length} documents</span>
+          <span class="hm-toggle-sub">${tail.length} more · ${tailChunks.toLocaleString()} passages</span>
+        </button>` : ''}
     </div>`;
   panel.innerHTML = html;
+
+  const toggle = panel.querySelector('#hm-toggle');
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-expanded') === 'true';
+      panel.querySelectorAll('.hm-row-extra').forEach(el => { el.hidden = expanded; });
+      toggle.setAttribute('aria-expanded', String(!expanded));
+      toggle.querySelector('.hm-toggle-label').textContent =
+        expanded ? toggle.dataset.more : toggle.dataset.less;
+      if (expanded) toggle.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  }
 }
 
 // ===========================================================================
