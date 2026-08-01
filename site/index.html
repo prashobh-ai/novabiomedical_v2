@@ -39,12 +39,18 @@
 
   <!-- ===== Nova Biomedical brand navbar ===== -->
   <header class="qz-navbar">
-    <a class="qz-brand" href="https://www.novabiomedical.com" target="_blank" rel="noreferrer" aria-label="Nova Biomedical">
-      <span class="qz-wordmark-text">Nova<span>Biomedical</span></span>
+    <a class="qz-brand" data-brand-href="client" target="_blank" rel="noreferrer">
+      <!-- Client name is a placeholder: no styling is keyed to its content, so a
+           different client name inherits the identical lockup. -->
+      <span class="qz-client" data-brand="clientName">Nova Biomedical</span>
     </a>
+    <span class="qz-divider" aria-hidden="true"></span>
     <div class="qz-context">
-      <span class="qz-context-title" data-brand="product">Knowledge Fabric</span>
-      <span class="qz-context-eyebrow" data-brand="navContext">Built by QualiZeal AI-CoE</span>
+      <span class="qz-product" data-brand="productName">Knowledge Fabric</span>
+      <span class="qz-demoby">
+        <span data-brand="demoBy">Demonstration by QualiZeal</span>
+        <small data-brand="demoByUnit">AI Center of Excellence</small>
+      </span>
     </div>
     <nav class="qz-nav">
       <a href="#hero" class="nav-scroll">Galaxy</a>
@@ -75,7 +81,6 @@
        ============================================================ -->
   <section class="story-section hero-section" id="hero">
     <div class="hero-overlay">
-      <span class="hero-eyebrow" data-brand="heroEyebrow"></span>
       <h1 class="hero-title">Every answer,<br/><em>traced to its source.</em></h1>
       <p class="hero-sub">Your documentation already holds the answers. Knowledge Fabric finds them, shows the page each one came from, and tells you how certain it is — so your teams can act on what they read instead of hunting for it.</p>
 
@@ -104,6 +109,12 @@
     </div>
 
     <!-- Inline status overlay -->
+    <div class="graph-purpose" id="graph-purpose" hidden>
+      <p class="gp-headline" id="gp-headline"></p>
+      <p class="gp-body" id="gp-body"></p>
+      <div class="gp-stats" id="gp-stats"></div>
+    </div>
+
     <div class="hero-status" id="galaxy-status-wrap">
       <span class="hero-status-text" id="galaxy-status">indexing universe…</span>
       <span class="retrieval-badge" id="retrieval-mode-badge" data-mode="lexical" title="Retrieval mode">lexical · bm25</span>
@@ -142,6 +153,7 @@
         <div class="answer-a-card">
           <span class="answer-a-eyebrow">Knowledge Fabric Answer</span>
           <div class="answer-a-text" id="answer-stage-text">—</div>
+          <p class="answer-assurance" data-brand="answerAssurance"></p>
           <div class="answer-a-meta">
             <span class="answer-meta-item answer-meta-conf">
               <span class="meta-k">Confidence</span>
@@ -172,6 +184,9 @@
        SECTION 3 — EXPLAINABILITY (source lineage + why)
        ============================================================ -->
   <div class="derivation-panel derivation-panel-inline" id="confidence-why" hidden></div>
+
+  <!-- What the graph contributed to THIS answer -->
+  <div class="graph-value-wrap" id="graph-value-wrap" hidden></div>
 
   <section class="story-section explain-section" id="section-explain">
     <div class="story-head">
@@ -345,7 +360,7 @@
        ============================================================ -->
   <footer class="story-footer">
     <div class="footer-inner">
-      <span class="footer-brand" data-brand="footerBrand">Knowledge Fabric</span>
+      <span class="footer-brand" data-brand="footerBrand"></span>
       <span class="footer-meta" id="footer-meta" data-brand="footerNote"></span>
     </div>
   </footer>
@@ -405,7 +420,7 @@
     <span id="risk-meta"></span>
   </div>
 
-  <script type="module" src="js/main.js?v=8"></script>
+  <script type="module" src="js/main.js?v=9"></script>
 
   <script>
     // Smooth scroll for in-page nav links
