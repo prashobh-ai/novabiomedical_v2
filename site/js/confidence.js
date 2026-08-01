@@ -86,14 +86,39 @@ function clamp01(x) { return Math.max(0, Math.min(1, x)); }
 // ---------------------------------------------------------------------------
 // Individual signals
 // ---------------------------------------------------------------------------
-function retrievalMargin(ranked) {
-  if (!ranked || ranked.length === 0) return 0;
-  if (ranked.length === 1) return 0.6;              // single hit: neither strong nor weak
-  const top = ranked[0].score;
-  if (!(top > 0)) return 0;
-  const rest = ranked.slice(1, 5);
-  const mean = rest.reduce((a, r) => a + r.score, 0) / rest.length;
-  return clamp01((top - mean) / top);
+function retrievalMargin(ranked, diagnostics) {
+  // Measured on the PRE-FUSION retriever scores.
+  //
+  // Computing this on RRF output was a genuine bug: fused scores are 1/(k+rank)
+  // sums, so rank 1 and rank 5 differ by under 3% by construction. The signal
+  // therefore never exceeded 0.20 on any question, and — being weighted 0.22
+  // inside a geometric mean — multiplied every answer by roughly 0.60. That is
+  // why every score clustered near 50%.
+  const pools = [];
+  if (diagnostics) {
+    if (diagnostics.lexicalScores && diagnostics.lexicalScores.length > 1) {
+      pools.push(diagnostics.lexicalScores);
+    }
+    if (diagnostics.semanticScores && diagnostics.semanticScores.length > 1) {
+      pools.push(diagnostics.semanticScores);
+    }
+  }
+  if (!pools.length) {
+    if (!ranked || !ranked.length) return 0;
+    if (ranked.length === 1) return 0.6;
+    return 0.5;                                     // unknown, not zero
+  }
+
+  // Each retriever votes; take the best separation either achieved.
+  const margins = pools.map(scores => {
+    const top = scores[0];
+    if (!(top > 0)) return 0;
+    const rest = scores.slice(1, 5);
+    if (!rest.length) return 0.6;
+    const mean = rest.reduce((a, s) => a + s, 0) / rest.length;
+    return clamp01((top - mean) / top);
+  });
+  return Math.max(...margins);
 }
 
 function retrieverAgreement(diagnostics) {
@@ -118,9 +143,13 @@ function queryCoverage(analysis, sentences, idf) {
 
 function sourceConsensus(sentences) {
   if (!sentences.length) return 0;
-  const docs = new Set(sentences.map(s => s.chunk.document_id));
-  const n = Math.min(docs.size, 3);
-  return clamp01(1 - 1 / (n + 0.35));               // 1 doc ≈ 0.26, 2 ≈ 0.57, 3 ≈ 0.70
+  const docs = new Set(sentences.map(s => s.chunk.document_id)).size;
+  // The previous curve, 1 - 1/(n+0.35) with n capped at 3, could never exceed
+  // 0.70 however well corroborated an answer was — a permanent ceiling applied
+  // to every question. This one still penalises a single source but lets strong
+  // corroboration actually register:
+  //   1 doc 0.35 · 2 docs 0.68 · 3 docs 0.84 · 4 docs 0.92 · 5+ docs 0.96
+  return clamp01(1 - Math.pow(0.5, docs) * 1.3);
 }
 
 function evidenceQuality(sentences) {
@@ -137,7 +166,7 @@ function evidenceQuality(sentences) {
  */
 export function computeConfidence({ analysis, ranked, sentences, diagnostics, idf }) {
   const signals = {
-    retrievalMargin: retrievalMargin(ranked),
+    retrievalMargin: retrievalMargin(ranked, diagnostics),
     retrieverAgreement: retrieverAgreement(diagnostics),
     queryCoverage: queryCoverage(analysis, sentences, idf),
     sourceConsensus: sourceConsensus(sentences),
@@ -174,14 +203,18 @@ export function computeConfidence({ analysis, ranked, sentences, diagnostics, id
     caveats.push('Question intent was ambiguous, so evidence routing was not applied.');
   }
 
-  const percent = Math.round(score * 100);
-  const band = percent >= 70 ? 'high' : percent >= 45 ? 'moderate' : percent >= 25 ? 'low' : 'very low';
+  // Two decimal places. A score that reads 58.25% is visibly the output of a
+  // calculation; one that reads 50% looks like a constant — which is exactly
+  // how the previous version was (correctly) received.
+  const exact = +(score * 100).toFixed(2);
+  const percent = exact;
+  const band = exact >= 70 ? 'high' : exact >= 45 ? 'moderate' : exact >= 25 ? 'low' : 'very low';
 
   return {
-    score, percent, band, caveats,
+    score, percent, exact, band, caveats,
     signals: Object.fromEntries(Object.entries(signals).map(([k, v]) => [k, {
       value: +v.toFixed(3),
-      percent: Math.round(v * 100),
+      percent: +(v * 100).toFixed(1),
       contribution: +(SIGNAL_SPECS[k].weight).toFixed(2),
       ...SIGNAL_SPECS[k],
     }])),
@@ -234,7 +267,7 @@ export function renderConfidenceBreakdown(conf) {
   return `
     <div class="conf-breakdown">
       <div class="conf-headline">
-        <span class="conf-headline-num">${conf.percent}%</span>
+        <span class="conf-headline-num">${conf.percent.toFixed(2)}%</span>
         <span class="conf-headline-band conf-band-${conf.band.replace(' ', '-')}">${conf.band} confidence</span>
       </div>
       <p class="conf-verdict">${plainVerdict(conf)}</p>

@@ -144,6 +144,15 @@ export function hybridSearch(query, { bm25, semantic, chunks, filters, topK = 20
       vocabCoverage: semantic ? +semantic.coverage(query).toFixed(2) : 0,
       fusion: 'reciprocal_rank_fusion',
       k: RRF_K,
+      // Pre-fusion scores, carried through for confidence scoring.
+      //
+      // RRF output cannot be used to judge how decisively the top result won:
+      // its scores are 1/(k+rank) sums, so rank 1 and rank 5 differ by under 3%
+      // BY CONSTRUCTION. Any "margin" computed on fused scores is measuring the
+      // fusion constant, not the evidence. The underlying retriever scores have
+      // real dynamic range and are the correct basis.
+      lexicalScores: lexical.slice(0, 8).map(h => h.score),
+      semanticScores: semanticHits.slice(0, 8).map(h => h.score),
     },
   };
 }
