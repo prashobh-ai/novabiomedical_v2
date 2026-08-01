@@ -70,7 +70,6 @@ async function boot() {
   });
 
   applyBrand(document);
-  renderGraphPurpose();
   renderCommandTiles();
   renderMaturityScore();
   renderHealthExplainer();
@@ -282,24 +281,6 @@ function maturityTone(score) {
   return { tone: 'risk', stroke: 'var(--sem-pink)' };
 }
 
-// The graph's standing explanation — shown before any question, so a first-time
-// viewer knows what the map is FOR rather than just that it looks impressive.
-function renderGraphPurpose() {
-  const host = document.getElementById('graph-purpose');
-  if (!host || !state.index) return;
-  try {
-    const p = graphPurposeCopy(state.index);
-    document.getElementById('gp-headline').textContent = p.headline;
-    document.getElementById('gp-body').textContent = p.body;
-    document.getElementById('gp-stats').innerHTML =
-      `<span class="gp-stat"><b>${p.stat}</b> ${p.statLabel}</span>` +
-      `<span class="gp-stat"><b>${p.stat2}</b> ${p.stat2Label}</span>`;
-    host.hidden = false;
-  } catch (err) {
-    console.warn('[fabric] graph purpose unavailable:', err.message);
-  }
-}
-
 // What the graph contributed to the answer just produced.
 function renderGraphValue(citations, analysis) {
   const host = document.getElementById('graph-value-wrap');
@@ -307,7 +288,7 @@ function renderGraphValue(citations, analysis) {
   try {
     const contribution = explainGraphContribution(citations, state.index, analysis);
     if (!contribution) { host.hidden = true; host.innerHTML = ''; return; }
-    host.innerHTML = renderGraphContribution(contribution);
+    host.innerHTML = renderGraphContribution(contribution, state.index);
     host.hidden = false;
     state.graphContribution = contribution;
   } catch (err) {
@@ -550,8 +531,7 @@ function setupGalaxy() {
     document.getElementById('galaxy-detail').hidden = true;
   });
 
-  document.getElementById('galaxy-status').textContent =
-    `${state.index.stats.entity_count} entities · ${state.index.stats.relationship_count} relationships · ask a question to traverse`;
+  setIdleGalaxyStatus();
 }
 
 // ============================================================================
@@ -819,13 +799,44 @@ function updateCopilotMetrics(citations, trace, ranked, cohesion) {
   document.getElementById('m-paths').textContent = Math.max(1, trace.edgeCount);
 }
 
+// At rest the chip answers "what is this map?" with the two numbers that make
+// the case: how many concepts join documents, and how many join documentation to
+// its regulatory record. Those are the graph's reason for existing, stated in
+// the corpus's own figures rather than in a floating explainer panel.
+function setIdleGalaxyStatus() {
+  const el = document.getElementById('galaxy-status');
+  const wrap = document.getElementById('galaxy-status-wrap');
+  if (!el || !state.index) return;
+  try {
+    const p = graphPurposeCopy(state.index);
+    el.innerHTML =
+      `<span class="gs-tag">Graph</span>` +
+      `<span class="gs-pair"><b>${p.stat}</b> concepts linking two or more records</span>` +
+      `<span class="gs-pair"><b>${p.stat2}</b> links between documents and regulatory records</span>`;
+    if (wrap) wrap.dataset.state = 'idle';
+    el.title = p.body;
+  } catch (_) {
+    el.textContent = `${state.index.stats.entity_count} entities · ` +
+                     `${state.index.stats.relationship_count} relationships`;
+  }
+}
+
+// While an answer is live the same chip reports what the graph DID.
 function updateGalaxyStatus(trace) {
   const el = document.getElementById('galaxy-status');
+  const wrap = document.getElementById('galaxy-status-wrap');
   if (trace.activeEntities.length === 0) {
     el.textContent = 'No entities activated — try a more specific question.';
+    if (wrap) wrap.dataset.state = 'empty';
     return;
   }
-  el.textContent = `${trace.activeEntities.length} activated · ${trace.neighborCount} neighbors · ${trace.edgeCount} relationships traversed`;
+  el.innerHTML =
+    `<span class="gs-tag gs-tag-live">Traversed</span>` +
+    `<span class="gs-pair"><b>${trace.activeEntities.length}</b> activated</span>` +
+    `<span class="gs-pair"><b>${trace.neighborCount}</b> neighbors</span>` +
+    `<span class="gs-pair"><b>${trace.edgeCount}</b> relationships</span>`;
+  if (wrap) wrap.dataset.state = 'live';
+  el.title = 'Concepts the graph walked through to assemble this answer.';
 }
 
 // ============================================================================

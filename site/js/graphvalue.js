@@ -162,9 +162,16 @@ export function explainGraphContribution(citations, index, analysis = null) {
     (x.ratio - y.ratio));
   const headline = weakPairs[0] || null;
 
+  // The concept the answer will NAME. Chosen once here, so the prose and the
+  // diagram can never disagree — a card whose sentence says "Creatinine" beside
+  // a picture labelled "Hemoglobin" destroys trust faster than no picture at all.
+  const headlineWeak = weakPairs[0] && weakPairs[0].ratio < 0.22 ? weakPairs[0] : null;
+  const primary = headlineWeak ? headlineWeak.via : bridges[0];
+
   return {
     documentCount: docIds.length,
     classes: [...classes],
+    primary,
     bridges: bridges.slice(0, 4),
     weakPairs: weakPairs.slice(0, 3),
     spansSources,
@@ -172,6 +179,92 @@ export function explainGraphContribution(citations, index, analysis = null) {
     // The claim we can defend: pairs joined despite low shared vocabulary.
     graphOnlyLinks: weakPairs.filter(p => p.ratio < 0.22).length,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Mini-graph — the specific subgraph behind THIS answer
+// ---------------------------------------------------------------------------
+//
+// The hero galaxy shows 323 nodes at once, which is impressive and unreadable.
+// What a reviewer needs beside the explanation is the four or five nodes that
+// actually produced this answer: the documents used, and the concept that joined
+// them. Rendered as inline SVG — no library, no layout engine, ~2 KB.
+//
+// Layout is a deliberate bipartite fan rather than a force simulation: the
+// bridging concept sits at the centre, contributing documents fan out around it.
+// That shape IS the argument — every document connects through the middle, and
+// nothing connects document-to-document directly.
+function shortLabel(name, max = 26) {
+  const clean = stripExt(name).replace(/\s+/g, ' ').trim();
+  return clean.length > max ? clean.slice(0, max - 1) + '\u2026' : clean;
+}
+
+export function renderMiniGraph(contribution, index) {
+  if (!contribution || !contribution.bridges.length) return '';
+
+  // Always the concept the prose names. Density is not worth an inconsistency.
+  const hub = contribution.primary || contribution.bridges[0];
+  const docsById = new Map((index.documents || []).map(d => [d.id, d]));
+  const docIds = hub.docs.slice(0, 5);
+  if (docIds.length < 2) return '';
+
+  const W = 300, H = 200;
+  const cx = W / 2, cy = H / 2;
+  const R = 74;
+
+  // Fan the documents across an arc so labels never collide.
+  const n = docIds.length;
+  const spread = n === 2 ? 140 : 300;
+  const start = -90 - spread / 2;
+
+  const nodes = docIds.map((id, i) => {
+    const angle = (start + (spread / Math.max(n - 1, 1)) * i) * Math.PI / 180;
+    const d = docsById.get(id);
+    const isRegulatory = d && (d.source_type === 'fda_regulatory' ||
+      d.domain === 'Regulatory' || /^K\d{6}/.test(d.name || ''));
+    return {
+      id,
+      x: cx + R * Math.cos(angle),
+      y: cy + R * Math.sin(angle) * 0.82,
+      label: shortLabel(d ? d.name : `doc ${id}`),
+      full: d ? stripExt(d.name) : `document ${id}`,
+      regulatory: isRegulatory,
+    };
+  });
+
+  const edges = nodes.map((nd, i) => `
+    <line class="mg-edge" x1="${cx}" y1="${cy}" x2="${nd.x.toFixed(1)}" y2="${nd.y.toFixed(1)}"
+          style="animation-delay:${i * 90}ms" />`).join('');
+
+  const docNodes = nodes.map((nd, i) => `
+    <g class="mg-doc" style="animation-delay:${140 + i * 90}ms">
+      <title>${escapeHtml(nd.full)}</title>
+      <circle cx="${nd.x.toFixed(1)}" cy="${nd.y.toFixed(1)}" r="7"
+              class="${nd.regulatory ? 'mg-node-reg' : 'mg-node-doc'}" />
+      <text x="${nd.x.toFixed(1)}" y="${(nd.y + (nd.y < cy ? -13 : 19)).toFixed(1)}"
+            text-anchor="middle" class="mg-label">${escapeHtml(nd.label)}</text>
+    </g>`).join('');
+
+  return `
+    <figure class="mini-graph">
+      <svg viewBox="0 0 ${W} ${H}" role="img"
+           aria-label="${escapeHtml(docIds.length)} documents connected through ${escapeHtml(hub.name)}">
+        <g class="mg-edges">${edges}</g>
+        <g class="mg-hub">
+          <circle cx="${cx}" cy="${cy}" r="19" class="mg-node-hub-halo" />
+          <circle cx="${cx}" cy="${cy}" r="11" class="mg-node-hub" />
+          <text x="${cx}" y="${cy + 36}" text-anchor="middle" class="mg-hub-label">
+            ${escapeHtml(hub.name)}
+          </text>
+        </g>
+        ${docNodes}
+      </svg>
+      <figcaption class="mg-caption">
+        <span class="mg-key"><i class="mg-swatch mg-swatch-hub"></i>shared concept</span>
+        <span class="mg-key"><i class="mg-swatch mg-swatch-doc"></i>documentation</span>
+        <span class="mg-key"><i class="mg-swatch mg-swatch-reg"></i>regulatory</span>
+      </figcaption>
+    </figure>`;
 }
 
 function stripExt(name) {
@@ -183,11 +276,11 @@ function sourceLabel(type) {
 }
 
 /** Plain-language render. Leads with the finding; the mechanism is secondary. */
-export function renderGraphContribution(contribution) {
+export function renderGraphContribution(contribution, index = null) {
   if (!contribution) return '';
 
   const { documentCount, bridges, headline, spansSources, graphOnlyLinks } = contribution;
-  const top = bridges[0];
+  const top = contribution.primary || bridges[0];
 
   let lead;
   if (headline && headline.ratio < 0.22) {
@@ -197,7 +290,7 @@ export function renderGraphContribution(contribution) {
            `(${Math.round(headline.ratio * 100)}% vocabulary in common). ` +
            `Keyword search would never have returned them together. ` +
            `They were connected because both describe ` +
-           `<strong>${escapeHtml(headline.via.name)}</strong>.`;
+           `<strong>${escapeHtml(top.name)}</strong>.`;
   } else {
     lead = `This answer drew on <strong>${documentCount} documents</strong>, linked through ` +
            `<strong>${escapeHtml(top.name)}</strong> — a concept that appears in ` +
@@ -217,31 +310,36 @@ export function renderGraphContribution(contribution) {
       <span class="gv-chip-reach">${b.docs.length} docs here</span>
     </span>`).join('');
 
+  const mini = index ? renderMiniGraph(contribution, index) : '';
+
   return `
-    <div class="graph-value">
-      <div class="gv-head">
-        <span class="gv-eyebrow">What the graph contributed</span>
-      </div>
-      <p class="gv-lead">${lead}</p>
-      ${crossNote}
-      <div class="gv-chips">${chips}</div>
-      ${graphOnlyLinks > 0 ? `
-        <p class="gv-metric">
-          <strong>${graphOnlyLinks}</strong> of the connections behind this answer
-          could not have been made by keyword matching alone.
-        </p>` : ''}
-      <details class="tech-detail">
-        <summary>How this was determined</summary>
-        <div class="tech-detail-body">
-          <p class="gv-tech">For every pair of documents used in the answer we measure
-          how much distinctive vocabulary they share, then check whether the knowledge
-          graph links them through a common subject. A pair with low shared vocabulary
-          but a graph link is a connection keyword search could not have found.</p>
-          <p class="gv-tech"><code>overlap = |sharedTerms| / min(|termsA|, |termsB|)</code>
-          — common words and boilerplate excluded. Below 22% is treated as
-          "no meaningful vocabulary in common".</p>
+    <div class="graph-value${mini ? ' graph-value-split' : ''}">
+      <div class="gv-main">
+        <div class="gv-head">
+          <span class="gv-eyebrow">What the graph contributed</span>
         </div>
-      </details>
+        <p class="gv-lead">${lead}</p>
+        ${crossNote}
+        <div class="gv-chips">${chips}</div>
+        ${graphOnlyLinks > 0 ? `
+          <p class="gv-metric">
+            <strong>${graphOnlyLinks}</strong> of the connections behind this answer
+            could not have been made by keyword matching alone.
+          </p>` : ''}
+        <details class="tech-detail">
+          <summary>How this was determined</summary>
+          <div class="tech-detail-body">
+            <p class="gv-tech">For every pair of documents used in the answer we measure
+            how much distinctive vocabulary they share, then check whether the knowledge
+            graph links them through a common subject. A pair with low shared vocabulary
+            but a graph link is a connection keyword search could not have found.</p>
+            <p class="gv-tech"><code>overlap = |sharedTerms| / min(|termsA|, |termsB|)</code>
+            — common words and boilerplate excluded. Below 22% is treated as
+            "no meaningful vocabulary in common".</p>
+          </div>
+        </details>
+      </div>
+      ${mini ? `<div class="gv-viz">${mini}</div>` : ''}
     </div>`;
 }
 
