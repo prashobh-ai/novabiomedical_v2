@@ -12,7 +12,6 @@ Transforming Enterprise Knowledge into an Explainable AI-Powered Intelligence Ne
   <img src="https://img.shields.io/badge/Knowledge%20Graph-Typed-purple" />
   <img src="https://img.shields.io/badge/Explainable%20AI-Citation%20Backed-orange" />
   <img src="https://img.shields.io/badge/Retrieval-Evaluated-red" />
-  <img src="https://img.shields.io/badge/Infra%20Cost-%240-lightgrey" />
 </p>
 
 ---
