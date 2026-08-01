@@ -156,6 +156,12 @@
               <span class="meta-k">Graph paths</span>
               <span class="meta-v meta-v-blue" id="answer-stage-paths">—</span>
             </span>
+            <span class="meta-item meta-item-action">
+              <button class="why-btn" id="confidence-why-toggle" type="button"
+                      aria-expanded="false" aria-controls="confidence-why">
+                How was this scored?
+              </button>
+            </span>
           </div>
         </div>
       </div>
@@ -165,6 +171,8 @@
   <!-- ============================================================
        SECTION 3 — EXPLAINABILITY (source lineage + why)
        ============================================================ -->
+  <div class="derivation-panel derivation-panel-inline" id="confidence-why" hidden></div>
+
   <section class="story-section explain-section" id="section-explain">
     <div class="story-head">
       <span class="story-eyebrow">Section 03 · Explainability</span>
@@ -265,6 +273,14 @@
 
       <!-- Risk cards on right -->
       <div class="health-risk-grid" id="risk-body"></div>
+
+      <div class="health-derive-wrap">
+        <button class="why-btn why-btn-wide" id="health-why-toggle" type="button"
+                aria-expanded="false" aria-controls="health-derivation">
+          How are these numbers derived?
+        </button>
+        <div class="derivation-panel" id="health-derivation" hidden></div>
+      </div>
     </div>
   </section>
 
@@ -388,7 +404,7 @@
     <span id="risk-meta"></span>
   </div>
 
-  <script type="module" src="js/main.js?v=6"></script>
+  <script type="module" src="js/main.js?v=7"></script>
 
   <script>
     // Smooth scroll for in-page nav links
