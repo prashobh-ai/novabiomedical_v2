@@ -146,12 +146,34 @@ def build(source_dir: Path, fda_dir: Path, out_path: Path, semantic_path: Path) 
         print(f"        {et:20s} {n}")
 
     print("\n[6/6] Assembling index")
-    entities = [{
-        "id": n["id"], "name": n["name"], "canonical": n["name"].lower(),
-        "kind": n["kind"], "count": n["mentions"], "mentions": n["mentions"],
-        "chunks": n["chunks"], "sources": n["sources"],
-        "cross_source": n.get("cross_source", False), "degree": n.get("degree", 0),
-    } for n in graph["nodes"]]
+
+    # The browser reads entities using the Phase 1 field names (mention_count,
+    # chunk_ids, document_ids). Those names are a published contract: graph.js,
+    # insights.js and main.js all index them directly, and a renamed field does
+    # not fail loudly — it silently yields `undefined` deep inside a click
+    # handler. Emit both the legacy names and the Phase 2 additions.
+    chunk_to_doc = {c.chunk_id: c.document_id for c in chunks}
+    entities = []
+    for n in graph["nodes"]:
+        chunk_ids = n["chunks"]
+        document_ids = sorted({chunk_to_doc[c] for c in chunk_ids if c in chunk_to_doc})
+        entities.append({
+            "id": n["id"],
+            "name": n["name"],
+            "canonical": n["name"].lower(),
+            "kind": n["kind"],
+            # --- Phase 1 contract (consumed by site/js) ---
+            "mention_count": n["mentions"],
+            "chunk_ids": chunk_ids,
+            "document_ids": document_ids,
+            # --- Phase 2 additions ---
+            "count": n["mentions"],
+            "mentions": n["mentions"],
+            "chunks": chunk_ids,
+            "sources": n["sources"],
+            "cross_source": n.get("cross_source", False),
+            "degree": n.get("degree", 0),
+        })
 
     relationships = [{
         "source": e["source"], "target": e["target"], "weight": e["weight"],
