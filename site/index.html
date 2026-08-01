@@ -109,14 +109,12 @@
     </div>
 
     <!-- Inline status overlay -->
-    <div class="graph-purpose" id="graph-purpose" hidden>
-      <p class="gp-headline" id="gp-headline"></p>
-      <p class="gp-body" id="gp-body"></p>
-      <div class="gp-stats" id="gp-stats"></div>
-    </div>
-
-    <div class="hero-status" id="galaxy-status-wrap">
-      <span class="hero-status-text" id="galaxy-status">indexing universe…</span>
+    <!-- One chip, two states. At rest it states what the graph IS; while an
+         answer is live it states what the graph DID. Same position, same
+         styling — the reader watches one element change rather than hunting
+         across two panels. -->
+    <div class="hero-status" id="galaxy-status-wrap" data-state="idle">
+      <span class="hero-status-text" id="galaxy-status">indexing…</span>
       <span class="retrieval-badge" id="retrieval-mode-badge" data-mode="lexical" title="Retrieval mode">lexical · bm25</span>
     </div>
   </section>
@@ -420,7 +418,7 @@
     <span id="risk-meta"></span>
   </div>
 
-  <script type="module" src="js/main.js?v=9"></script>
+  <script type="module" src="js/main.js?v=10"></script>
 
   <script>
     // Smooth scroll for in-page nav links
