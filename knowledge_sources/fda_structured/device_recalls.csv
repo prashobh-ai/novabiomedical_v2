@@ -1,0 +1,410 @@
+product_res_number,event_date_initiated,event_date_posted,recall_status,product_code,root_cause_description,reason_for_recall,product_description,recalling_firm,distribution_pattern,action
+Z-0681-2025,2024-11-20,2024-12-20,"Open, Classified",PZI,Software design,"A software bug within the Gen 2 StatStrip Hospital Meter firmware leads to transmission of erroneous glucose patient test results to a healthcare institution's data management system (DMS) at healthcare sites using WiFi if a user navigates to the Review Results screen while the meter is in the process of transmitting the current glucose test result to the DMS.  The risk of this software defect is erroneously high or low glucose results being documented in a patient's medical record, which may lead to incorrect treatment.",StatStrip Glucose Hospital Meter System. Model/Catalog Number: 63685. Prescription use blood glucose meter for near-patient testing.,Nova Biomedical Corporation,"Distribution US Nationwide including Puerto Rico, Germany, Italy, Israel, Switzerland, Australia, Great Britain, and the Netherlands.","Nova Biomedical notified consignees via letter on 11/20/2024. Consignees were instructed that all current Nova StatStrip customers that have gone Live with their new meters recently received a meter software update (v.0.0.13.45 or above) from Nova Biomedical to eliminate the potential risk described above. All remaining customers that have been shipped StatStrip meters impacted by this field correction, will have their meter software updated by Nova Biomedical or local dealer prior to going ""Live"" with their new meters."
+Z-0682-2025,2024-11-20,2024-12-20,"Open, Classified",N/A,Software design,A software bug within the meter firmware leads to transmission of erroneous glucose and/or ketone patient test results to a healthcare institution's data management system (DMS) at healthcare sites using WiFi if a user navigates to the Review Results screen while the meter is in the process of transmitting the current test result to the DMS.,StatStrip Glucose Ketone Hospital Meter System. Model/Catalog Number: 63683. Prescription use blood glucose ketone meter for near-patient testing,Nova Biomedical Corporation,"Distribution US Nationwide including Puerto Rico, Germany, Italy, Israel, Switzerland, Australia, Great Britain, and the Netherlands.","Nova Biomedical notified consignees via letter on 11/20/2024. Consignees were instructed that all current Nova StatStrip customers that have gone Live with their new meters recently received a meter software update (v.0.0.13.45 or above) from Nova Biomedical to eliminate the potential risk described above. All remaining customers that have been shipped StatStrip meters impacted by this field correction, will have their meter software updated by Nova Biomedical or local dealer prior to going ""Live"" with their new meters."
+Z-0683-2025,2024-11-20,2024-12-20,"Open, Classified",N/A,Software design,A software bug within the meter firmware leads to transmission of erroneous glucose and/or ketone patient test results to a healthcare institution's data management system (DMS) at healthcare sites using WiFi if a user navigates to the Review Results screen while the meter is in the process of transmitting the current test result to the DMS.,StatStrip Glucose Ketone (mmol/L) Hospital Meter System. Model/Catalog Number: 63910. Prescription use blood glucose ketone meter for near-patient testing,Nova Biomedical Corporation,"Distribution US Nationwide including Puerto Rico, Germany, Italy, Israel, Switzerland, Australia, Great Britain, and the Netherlands.","Nova Biomedical notified consignees via letter on 11/20/2024. Consignees were instructed that all current Nova StatStrip customers that have gone Live with their new meters recently received a meter software update (v.0.0.13.45 or above) from Nova Biomedical to eliminate the potential risk described above. All remaining customers that have been shipped StatStrip meters impacted by this field correction, will have their meter software updated by Nova Biomedical or local dealer prior to going ""Live"" with their new meters."
+Z-0207-2024,2023-09-18,2023-11-01,"Open, Classified",JGS,Process design,Potential risk of reporting erroneous creatinine patient results associated with the initial start-up of a new BUN/Creatinine Sensor Cartridge. The potential risk is within the first 2-4 hours after cartridge installation that may not be identified by traditional Quality Control practices.,"Nova Biomedical Prime Plus Analyzer -Intended to measure certain gases in blood, serum, plasma or pH of blood, serum, and plasma.
+  
+(1) PN 57400 Stat Profile Prime Plus Analyzer
+(2) PN 59508 Stat Profile Prime Plus Analyzer, Remanufactured",Nova Biomedical Corporation,"Nationwide
+Foreign:
+Country
+Algeria
+Australia
+Austria
+Bangladesh
+Benin
+Bolivia
+Brazil
+Canada
+Chile
+China
+Colombia
+Croatia
+CYPRUS
+Czech Republic
+Ecuador
+Egypt
+El Salvador
+Finland
+France
+Germany
+Greece
+Guatemala
+India
+Indonesia
+Ireland
+Israel
+Italy
+Japan
+JORDAN
+Kazakhstan
+Kenya
+Kurdistan, Iraq
+Kuwait
+Malaysia
+Malta
+Mexico
+Moldova
+Morocco
+Nepal
+Netherlands
+New Zealand
+Oman
+Pakistan
+Palestine
+Paraguay
+Paraquay
+Peru
+Philippines
+Poland
+Puerto Rico
+Qatar
+Republic of Panama
+Romania
+Russia
+Rwanda
+Saudi Arabia
+Serbia
+Slovenia
+South Africa
+South Korea
+Spain
+Sri Lanka
+Sudan
+Sweden
+Switzerland
+Syria
+Thailand
+Trinidad
+Trinidad,W.I.
+Tunisia
+UK
+Ukraine
+United Arab Emerites
+Uruguay
+Vietnam","Nova Biomedical  Customer Success Managers starting 9/18/23 contacted consignees directly via telephone,  to review the bulletin with the consignee DRP, verify an email to send the bulletin to them, and then immediately forward the bulletin to them so they can share within their own healthcare facility.
+Letter states the reason for recall, health risk and action to take:
+Nova Biomedical recommends that your healthcare facility take one of the following risk mitigation steps after a BUN/Creatinine Sensor Cartridge replacement to reduce the possibility of this issue occurring in your facility until your analyzers have received a software update.
+
+""	If your analyzer tests patient samples frequently, initiate a manual analyzer calibration every 30 minutes within the first 2 hours, and then every hour for the next 2 hours after cartridge replacement.
+""	If your analyzer tests patient samples infrequently, within the first 4 hours after cartridge replacement, initiate a manual analyzer calibration prior to performing a patient test.
+Until your Prime Plus analyzer(s) software is updated, if your healthcare facility experiences an erroneous creatinine result or adverse event after a new sensor cartridge installation, Nova encourages you to contact Nova Biomedical or your authorized distributor to properly document the incident.  For adverse event(s), Nova encourages you to report the details using the MedWatch Online Voluntary Reporting Form, MedWatch Online Voluntary Reporting Form (fda.gov).
+
+INTERNAL HEALTHCARE FACILITY COMMUNICATION:
+
+This Field Correction Notice should be distributed to all those within your organization who need to be aware of this issue.  Please notify other parties affiliated with your organization, which are affected by this notice. Please maintain awareness of this notice until the issue has been corrected with a scheduled software update. 
+If you have any questions on the contents of this notice, would like to discuss other risk mitigation options"
+Z-0208-2024,2023-09-18,2023-11-01,"Open, Classified",JGS,Process design,Potential risk of reporting erroneous creatinine patient results associated with the initial start-up of a new BUN/Creatinine Sensor Cartridge. The potential risk is within the first 2-4 hours after cartridge installation that may not be identified by traditional Quality Control practices.,"Nova Stat Profile Prime Plus POC Analyzer (CE)-Intended to measure certain gases in blood, serum, plasma or pH of blood, serum, and plasma.
+
+(1) PN 63368 Stat Profile Prime Plus POC Analyzer
+(2) PN 63369 Stat Profile Prime Plus POC Analyzer, Remanufactured
+
+
+P/N: 57400, 63368",Nova Biomedical Corporation,"Nationwide
+Foreign:
+Country
+Algeria
+Australia
+Austria
+Bangladesh
+Benin
+Bolivia
+Brazil
+Canada
+Chile
+China
+Colombia
+Croatia
+CYPRUS
+Czech Republic
+Ecuador
+Egypt
+El Salvador
+Finland
+France
+Germany
+Greece
+Guatemala
+India
+Indonesia
+Ireland
+Israel
+Italy
+Japan
+JORDAN
+Kazakhstan
+Kenya
+Kurdistan, Iraq
+Kuwait
+Malaysia
+Malta
+Mexico
+Moldova
+Morocco
+Nepal
+Netherlands
+New Zealand
+Oman
+Pakistan
+Palestine
+Paraguay
+Paraquay
+Peru
+Philippines
+Poland
+Puerto Rico
+Qatar
+Republic of Panama
+Romania
+Russia
+Rwanda
+Saudi Arabia
+Serbia
+Slovenia
+South Africa
+South Korea
+Spain
+Sri Lanka
+Sudan
+Sweden
+Switzerland
+Syria
+Thailand
+Trinidad
+Trinidad,W.I.
+Tunisia
+UK
+Ukraine
+United Arab Emerites
+Uruguay
+Vietnam","Nova Biomedical  Customer Success Managers starting 9/18/23 contacted consignees directly via telephone,  to review the bulletin with the consignee DRP, verify an email to send the bulletin to them, and then immediately forward the bulletin to them so they can share within their own healthcare facility.
+Letter states the reason for recall, health risk and action to take:
+Nova Biomedical recommends that your healthcare facility take one of the following risk mitigation steps after a BUN/Creatinine Sensor Cartridge replacement to reduce the possibility of this issue occurring in your facility until your analyzers have received a software update.
+
+""	If your analyzer tests patient samples frequently, initiate a manual analyzer calibration every 30 minutes within the first 2 hours, and then every hour for the next 2 hours after cartridge replacement.
+""	If your analyzer tests patient samples infrequently, within the first 4 hours after cartridge replacement, initiate a manual analyzer calibration prior to performing a patient test.
+Until your Prime Plus analyzer(s) software is updated, if your healthcare facility experiences an erroneous creatinine result or adverse event after a new sensor cartridge installation, Nova encourages you to contact Nova Biomedical or your authorized distributor to properly document the incident.  For adverse event(s), Nova encourages you to report the details using the MedWatch Online Voluntary Reporting Form, MedWatch Online Voluntary Reporting Form (fda.gov).
+
+INTERNAL HEALTHCARE FACILITY COMMUNICATION:
+
+This Field Correction Notice should be distributed to all those within your organization who need to be aware of this issue.  Please notify other parties affiliated with your organization, which are affected by this notice. Please maintain awareness of this notice until the issue has been corrected with a scheduled software update. 
+If you have any questions on the contents of this notice, would like to discuss other risk mitigation options"
+Z-2732-2017,2017-06-19,,Terminated,CHL,Software design,"Software- scheduled A-QC analysis could initiate prior
+to a patient result being released by the operator and result in the pending patient result being overwritten
+with the A-QC test results.","Nova Biomedical Stat Profile Prime Analyzer as follows:
+PN 52855 Stat Profile Prime ABG Analyzer
+PN 53655 Stat Profile Prime ABG Analyzer with Scanner
+PN 52856 Stat Profile Prime CCS Analyzer
+PN 53656 Stat Profile Prime CCS Analyzer with Scanner
+PN 53657 Stat Profile Prime CCS Comp Analyzer with Scanner
+PN 52857 Stat Profile Prime CCS Comp Analyzer
+Blood Gas/Electrolyte/Metabolite/CO-Oximetry Analyzer",Nova Biomedical Corporation,"Worldwide Distribution - US (Nationwide)
+Foreign:
+Albania
+Algeria
+Argentina
+Australia
+Austria
+Bangladesh
+Benin
+Bolivia
+Brazil
+Canada
+Chile
+China
+Colombia
+Costa Rica
+Czech Republic
+ECUADOR
+Egypt
+El Salvador
+Finland
+France
+Germany
+Ghana
+Greece
+Guatemala
+Guyana
+Honduras
+Hong Kong
+Hungary
+ICELAND
+India
+Iran
+Israel
+Italy
+Ivory Coast
+Japan
+Jordan
+Kenya
+Korea
+Latvia
+Macedonia
+Malaysia
+Mexico
+Nepal
+Netherlands
+Nigeria
+Pakistan
+Pakistan
+Palestine
+Peru
+Philippines
+Poland
+Puerto Rico
+Republic of Panama
+Republica Dominicana
+Russia
+Saudi Arabia
+Slovak Republic
+Slovenia
+South Africa
+Sri Lanka
+Switzerland
+Taiwan
+Thailand
+The Netherlands
+Trinidad,W.I.
+Tunisia
+Turkey
+UK
+Uruguay
+Vietnam","Nova Biomedical issued Urgent Field Correction Notice on June 19, 2017, to all affected customers.  The letter  advises users of the problem and Nova Biomedical or an authorized Nova Biomedical representative will schedule a no charge update of your Stat Profile Prime Analyzer software to version VI1.0.883.0.  A representative will contact customers to schedule this update.  Questions: contact Nova Biomedical Technical Support at 1-800-545-6682, in Canada contact us at 1-800-263-5999, or outside of N. America contact your authorized Nova Biomedical subsidiary or distributor.
+For questions regarding this recall call 781-647-3700."
+Z-0650-2014,2013-10-10,2014-01-09,Terminated,CGA,Component design/selection,Revised Battery Instructions for Removal and Expiration  Date due to battery swelling and cell leakage,"Nova StatStrip/StatSensor Hospital Blood Glucose Meter; Nova StatStrip Lactate Hospital Meter System; Nova StatSensor Creatinine Hospital Meter,
+
+Rechargeable Lithium Batteries
+Single: 46626; 4 Pack: 46827; 5 Pack: 50436.
+
+For Point-Of-Care usage in the quantitative determination of Glucose in whole blood.",Nova Biomedical Corporation,Nationwide Distribution.,"On November 18, 2013, an URGENT Field Correction Letter was sent to all StatStrip Glucose Hospital meter, StatStrip Lactate Hospital Meter and StatSensor Creatinine Hospital Meter customers via email to the Point of Care Coordinator to alert users that lithium batteries that are utilized beyond their intended useful life may swell and/or crack posing a potential safety hazard.  In some cases, the swelling may potentially cause the battery door on the meter to dislodge and render the meter inoperable."
+Z-1897-2013,2013-07-15,2013-08-09,Terminated,NBW,Material/Component Contamination,Reports of false abnormally high glucose readings from test strips,"Nova Max Glucose Test Strips (50 Count Retail)
+Catalog Number: 43437
+
+Product Usage:   The Nova Max Glucose Test Strips are for use with the Nova Max Family of Glucose Monitors (Nova Max, Nova Max Plus, Nova Max Link, BD Logic and Paradigm Link). These monitors are intended to be used for the quantitative measurement of glucose in fresh capillary whole blood. They are intended for use by people with diabetes mellitus in the home and by healthcare professionals in clinical settings as an aid to monitor the effectiveness of diabetes control",Nova Biomedical Corporation,"Worldwide Distribution - USA Nationwide and the countries of  Chile, England , Peru, Nicaragua","Nova Biomedical U.S.A  issued an Urgent Medical Device Voluntary Recall Letter dated July 19, 2013 via registered/certified letters to affected customers.  The letter identified the affected product, problem and actions to be taken.  Customers were instructed to immediately discontinue use of the affected product; contact Nova Diabetes Care Customer Service for replacement strips; do not stop testing blood glucose while waiting for replacement strips; if affected strips must be used follow precautions provided in notification letter.  For questions call Nova Diabetes Care Customer Service at 1-800-681-7390.
+
+."
+Z-1898-2013,2013-07-15,2013-08-09,Terminated,NBW,Material/Component Contamination,Reports of false abnormally high glucose readings from test strips,"Nova Max Glucose Test Strips (50 Count DME)
+Catalog Number: 43523
+
+Product Usage:   The Nova Max Glucose Test Strips are for use with the Nova Max Family of Glucose Monitors (Nova Max, Nova Max Plus, Nova Max Link, BD Logic and Paradigm Link). These monitors are intended to be used for the quantitative measurement of glucose in fresh capillary whole blood. They are intended for use by people with diabetes mellitus in the home and by healthcare professionals in clinical settings as an aid to monitor the effectiveness of diabetes control",Nova Biomedical Corporation,"Worldwide Distribution - USA Nationwide and the countries of  Chile, England , Peru, Nicaragua","Nova Biomedical U.S.A  issued an Urgent Medical Device Voluntary Recall Letter dated July 19, 2013 via registered/certified letters to affected customers.  The letter identified the affected product, problem and actions to be taken.  Customers were instructed to immediately discontinue use of the affected product; contact Nova Diabetes Care Customer Service for replacement strips; do not stop testing blood glucose while waiting for replacement strips; if affected strips must be used follow precautions provided in notification letter.  For questions call Nova Diabetes Care Customer Service at 1-800-681-7390.
+
+."
+Z-1899-2013,2013-07-15,2013-08-09,Terminated,NBW,Material/Component Contamination,Reports of false abnormally high glucose readings from test strips,"Nova Max Glucose Test Strips (10 Count Boxed)
+Catalog Number: 43590
+
+Product Usage:   The Nova Max Glucose Test Strips are for use with the Nova Max Family of Glucose Monitors (Nova Max, Nova Max Plus, Nova Max Link, BD Logic and Paradigm Link). These monitors are intended to be used for the quantitative measurement of glucose in fresh capillary whole blood. They are intended for use by people with diabetes mellitus in the home and by healthcare professionals in clinical settings as an aid to monitor the effectiveness of diabetes control",Nova Biomedical Corporation,"Worldwide Distribution - USA Nationwide and the countries of  Chile, England , Peru, Nicaragua","Nova Biomedical U.S.A  issued an Urgent Medical Device Voluntary Recall Letter dated July 19, 2013 via registered/certified letters to affected customers.  The letter identified the affected product, problem and actions to be taken.  Customers were instructed to immediately discontinue use of the affected product; contact Nova Diabetes Care Customer Service for replacement strips; do not stop testing blood glucose while waiting for replacement strips; if affected strips must be used follow precautions provided in notification letter.  For questions call Nova Diabetes Care Customer Service at 1-800-681-7390.
+
+."
+Z-1900-2013,2013-07-15,2013-08-09,Terminated,NBW,Material/Component Contamination,Reports of false abnormally high glucose readings from test strips,"Nova Max Glucose Test Strips (100 Count Retail Canada)Catalog Number: 43955 
+
+Product Usage:   The Nova Max Glucose Test Strips are for use with the Nova Max Family of Glucose Monitors (Nova Max, Nova Max Plus, Nova Max Link, BD Logic and Paradigm Link). These monitors are intended to be used for the quantitative measurement of glucose in fresh capillary whole blood. They are intended for use by people with diabetes mellitus in the home and by healthcare professionals in clinical settings as an aid to monitor the effectiveness of diabetes control",Nova Biomedical Corporation,"Worldwide Distribution - USA Nationwide and the countries of  Chile, England , Peru, Nicaragua","Nova Biomedical U.S.A  issued an Urgent Medical Device Voluntary Recall Letter dated July 19, 2013 via registered/certified letters to affected customers.  The letter identified the affected product, problem and actions to be taken.  Customers were instructed to immediately discontinue use of the affected product; contact Nova Diabetes Care Customer Service for replacement strips; do not stop testing blood glucose while waiting for replacement strips; if affected strips must be used follow precautions provided in notification letter.  For questions call Nova Diabetes Care Customer Service at 1-800-681-7390.
+
+."
+Z-1901-2013,2013-07-15,2013-08-09,Terminated,NBW,Material/Component Contamination,Reports of false abnormally high glucose readings from test strips,"Nova Max Glucose Test Strips (10 Count Vials)
+Catalog Number: 43604
+These strips are kitted into Nova Max Glucose Test Strip System Kits 43435 and 45507
+
+Product Usage:   The Nova Max Glucose Test Strips are for use with the Nova Max Family of Glucose Monitors (Nova Max, Nova Max Plus, Nova Max Link, BD Logic and Paradigm Link). These monitors are intended to be used for the quantitative measurement of glucose in fresh capillary whole blood. They are intended for use by people with diabetes mellitus in the home and by healthcare professionals in clinical settings as an aid to monitor the effectiveness of diabetes control",Nova Biomedical Corporation,"Worldwide Distribution - USA Nationwide and the countries of  Chile, England , Peru, Nicaragua","Nova Biomedical U.S.A  issued an Urgent Medical Device Voluntary Recall Letter dated July 19, 2013 via registered/certified letters to affected customers.  The letter identified the affected product, problem and actions to be taken.  Customers were instructed to immediately discontinue use of the affected product; contact Nova Diabetes Care Customer Service for replacement strips; do not stop testing blood glucose while waiting for replacement strips; if affected strips must be used follow precautions provided in notification letter.  For questions call Nova Diabetes Care Customer Service at 1-800-681-7390.
+
+."
+Z-1902-2013,2013-07-15,2013-08-09,Terminated,NBW,Material/Component Contamination,Reports of false abnormally high glucose readings from test strips,"Nova Max Glucose Test Strips (50 Count International
+Catalog Number: 45512
+
+Product usage:  The Nova Max Glucose Test Strips are for use with the Nova Max Family of Glucose Monitors (Nova Max, Nova Max Plus, Nova Max Link, BD Logic and Paradigm Link). These monitors are intended to be used for the quantitative measurement of glucose in fresh capillary whole blood. They are intended for use by people with diabetes mellitus in the home and by healthcare professionals in clinical settings as an aid to monitor the effectiveness of diabetes control",Nova Biomedical Corporation,"Worldwide Distribution - USA Nationwide and the countries of  Chile, England , Peru, Nicaragua","Nova Biomedical U.S.A  issued an Urgent Medical Device Voluntary Recall Letter dated July 19, 2013 via registered/certified letters to affected customers.  The letter identified the affected product, problem and actions to be taken.  Customers were instructed to immediately discontinue use of the affected product; contact Nova Diabetes Care Customer Service for replacement strips; do not stop testing blood glucose while waiting for replacement strips; if affected strips must be used follow precautions provided in notification letter.  For questions call Nova Diabetes Care Customer Service at 1-800-681-7390.
+
+."
+Z-1903-2013,2013-07-15,2013-08-09,Terminated,NBW,Material/Component Contamination,Reports of false abnormally high glucose readings from test strips,"Nova Max Plus Monitor System (Kit w/10 Count Vials)
+Catalog Number: 43435
+
+Product usage:  The Nova Max Glucose Test Strips are for use with the Nova Max Family of Glucose Monitors (Nova Max, Nova Max Plus, Nova Max Link, BD Logic and Paradigm Link). These monitors are intended to be used for the quantitative measurement of glucose in fresh capillary whole blood. They are intended for use by people with diabetes mellitus in the home and by healthcare professionals in clinical settings as an aid to monitor the effectiveness of diabetes control",Nova Biomedical Corporation,"Worldwide Distribution - USA Nationwide and the countries of  Chile, England , Peru, Nicaragua","Nova Biomedical U.S.A  issued an Urgent Medical Device Voluntary Recall Letter dated July 19, 2013 via registered/certified letters to affected customers.  The letter identified the affected product, problem and actions to be taken.  Customers were instructed to immediately discontinue use of the affected product; contact Nova Diabetes Care Customer Service for replacement strips; do not stop testing blood glucose while waiting for replacement strips; if affected strips must be used follow precautions provided in notification letter.  For questions call Nova Diabetes Care Customer Service at 1-800-681-7390.
+
+."
+Z-1904-2013,2013-07-15,2013-08-09,Terminated,NBW,Material/Component Contamination,Reports of false abnormally high glucose readings from test strips,"Nova Max Glucose Test Strips (10 Count Canada)Catalog Number: 43877
+
+Product The Nova Max Glucose Test Strips are for use with the Nova Max Family of Glucose Monitors (Nova Max, Nova Max Plus, Nova Max Link, BD Logic and Paradigm Link). These monitors are intended to be used for the quantitative measurement of glucose in fresh capillary whole blood. They are intended for use by people with diabetes mellitus in the home and by healthcare professionals in clinical settings as an aid to monitor the effectiveness of diabetes control",Nova Biomedical Corporation,"Worldwide Distribution - USA Nationwide and the countries of  Chile, England , Peru, Nicaragua","Nova Biomedical U.S.A  issued an Urgent Medical Device Voluntary Recall Letter dated July 19, 2013 via registered/certified letters to affected customers.  The letter identified the affected product, problem and actions to be taken.  Customers were instructed to immediately discontinue use of the affected product; contact Nova Diabetes Care Customer Service for replacement strips; do not stop testing blood glucose while waiting for replacement strips; if affected strips must be used follow precautions provided in notification letter.  For questions call Nova Diabetes Care Customer Service at 1-800-681-7390.
+
+."
+Z-1905-2013,2013-07-15,2013-08-09,Terminated,NBW,Material/Component Contamination,Reports of false abnormally high glucose readings from test strips,"Nova Max Plus Monitor System (Kit w/10 Count Vials Canada) Catalog Number: 43861
+
+Product usage:  The Nova Max Glucose Test Strips are for use with the Nova Max Family of Glucose Monitors (Nova Max, Nova Max Plus, Nova Max Link, BD Logic and Paradigm Link). These monitors are intended to be used for the quantitative measurement of glucose in fresh capillary whole blood. They are intended for use by people with diabetes mellitus in the home and by healthcare professionals in clinical settings as an aid to monitor the effectiveness of diabetes control",Nova Biomedical Corporation,"Worldwide Distribution - USA Nationwide and the countries of  Chile, England , Peru, Nicaragua","Nova Biomedical U.S.A  issued an Urgent Medical Device Voluntary Recall Letter dated July 19, 2013 via registered/certified letters to affected customers.  The letter identified the affected product, problem and actions to be taken.  Customers were instructed to immediately discontinue use of the affected product; contact Nova Diabetes Care Customer Service for replacement strips; do not stop testing blood glucose while waiting for replacement strips; if affected strips must be used follow precautions provided in notification letter.  For questions call Nova Diabetes Care Customer Service at 1-800-681-7390.
+
+."
+Z-1906-2013,2013-07-15,2013-08-09,Terminated,NBW,Material/Component Contamination,Reports of false abnormally high glucose readings from test strips,"Nova Max Plus Monitor System (Kit w/10 Count Vials International)
+Catalog Number: 45507
+
+Product Usage:  The Nova Max Glucose Test Strips are for use with the Nova Max Family of Glucose Monitors (Nova Max, Nova Max Plus, Nova Max Link, BD Logic and Paradigm Link). These monitors are intended to be used for the quantitative measurement of glucose in fresh capillary whole blood. They are intended for use by people with diabetes mellitus in the home and by healthcare professionals in clinical settings as an aid to monitor the effectiveness of diabetes control",Nova Biomedical Corporation,"Worldwide Distribution - USA Nationwide and the countries of  Chile, England , Peru, Nicaragua","Nova Biomedical U.S.A  issued an Urgent Medical Device Voluntary Recall Letter dated July 19, 2013 via registered/certified letters to affected customers.  The letter identified the affected product, problem and actions to be taken.  Customers were instructed to immediately discontinue use of the affected product; contact Nova Diabetes Care Customer Service for replacement strips; do not stop testing blood glucose while waiting for replacement strips; if affected strips must be used follow precautions provided in notification letter.  For questions call Nova Diabetes Care Customer Service at 1-800-681-7390.
+
+."
+Z-1153-2013,2013-02-25,2013-04-19,Terminated,CGA,Process design,Glucose test strips reports no result message when tested,"Nova StatStrip Xpress Glu-Test Strips (Glucose test strips)
+Catalog # 42214",Nova Biomedical Corporation,"Worldwide distribution: USA (nationwide) including states of: CA, IL, KY,NY, WV and countries of: United Kingdom and Italy.","The firm, Nova Biomedical, sent an ""Urgent Field Safety Notice 01-13SS"" dated March 18, 2013 and US customers notification by phone contact and to the International customers including a Faxback Form to be communicated to and sent to Nova Biomedical Subsidiary by two methods of delivery (Email and Phone Call). The customers were instructed to INVALIDATE the Nova StatStrip Glucose Test Strip lots indicated in the list on all StatStrip meters within your institute; REPLACE all Nova StatStrip Glucose Test Strips from the indicated lots with replacement test strips provided by Nova; REMOVE all unused boxes of the Nova StatStrip Glucose Test Strip lots indicated from all locations within your institute; RETURN all unused boxes of the Nova StatStrip Glucose Test Strips lots indicated to Nova Biomedical U.K. or your local Nova distributor following the country specific instructions provided by your authorized Nova representative, and complete and return the Fax-Back Form via email or FAX to your Regional Service Manager at  781-8914806.
+
+On April 08, 2013,  the firm expanded the recall notification to include one additional test strip lot #0313021309 which was shipped under two catalog numbers(Catalog # 42214 and  Catalog# 51493). US Notification by phone contact with key customer contact facilitated by Senior Manger of Technical Support Services. International - Field Safety Notice and Faxback Form is being communicated to and sent to Nova Biomedical Subsidiary by two methods of delivery (Email and Phone Call).
+
+Questions regarding this notice should be directed to the following Nova Biomedical EU Authorized Representative at: Nova Biomedical Innovation House, Aston Lane South Runcorn,WA7 3FY Telephone: + 44 1244 287087
+Email: Europe@novabiomedical.co.uk. or US at  (781) 894-0800."
+Z-1154-2013,2013-02-25,2013-04-19,Terminated,CGA,Process design,Glucose test strips reports no result message when tested,"Nova StatStrip Xpress Glu-Test Strips (Glucose test strips)
+Catalog # 51493 (UK Only)",Nova Biomedical Corporation,"Worldwide distribution: USA (nationwide) including states of: CA, IL, KY,NY, WV and countries of: United Kingdom and Italy.","The firm, Nova Biomedical, sent an ""Urgent Field Safety Notice 01-13SS"" dated March 18, 2013 and US customers notification by phone contact and to the International customers including a Faxback Form to be communicated to and sent to Nova Biomedical Subsidiary by two methods of delivery (Email and Phone Call). The customers were instructed to INVALIDATE the Nova StatStrip Glucose Test Strip lots indicated in the list on all StatStrip meters within your institute; REPLACE all Nova StatStrip Glucose Test Strips from the indicated lots with replacement test strips provided by Nova; REMOVE all unused boxes of the Nova StatStrip Glucose Test Strip lots indicated from all locations within your institute; RETURN all unused boxes of the Nova StatStrip Glucose Test Strips lots indicated to Nova Biomedical U.K. or your local Nova distributor following the country specific instructions provided by your authorized Nova representative, and complete and return the Fax-Back Form via email or FAX to your Regional Service Manager at  781-8914806.
+
+On April 08, 2013,  the firm expanded the recall notification to include one additional test strip lot #0313021309 which was shipped under two catalog numbers(Catalog # 42214 and  Catalog# 51493). US Notification by phone contact with key customer contact facilitated by Senior Manger of Technical Support Services. International - Field Safety Notice and Faxback Form is being communicated to and sent to Nova Biomedical Subsidiary by two methods of delivery (Email and Phone Call).
+
+Questions regarding this notice should be directed to the following Nova Biomedical EU Authorized Representative at: Nova Biomedical Innovation House, Aston Lane South Runcorn,WA7 3FY Telephone: + 44 1244 287087
+Email: Europe@novabiomedical.co.uk. or US at  (781) 894-0800."
+Z-1783-2010,2010-02-12,2010-06-10,Terminated,CGA,Nonconforming Material/Component,Glucose strips report low glucose results,"Nova StatStrip Glucose Test Strips, Catalog Number: 42214.  Nova Biomedical Corporation.  Waltham, MA 02454.
+
+Intended for in vitro diagnostic use by health care professionals and for Point-Of-Care usage for the quantitative measurement of glucose in capillary, venous, arterial and neonate whole blood.",Nova Biomedical Corporation,"Worldwide Distribution -- United States (CO, MA, MN and RI), United Kingdom, Germany, France and Italy.","Nova Biomedical notified  it's domestic Consignees by a  Customer Advisory Notice by phone and follow up by email and/or fax dated February 12, 2010. The firm will replace all affected inventory at customer sites via overnight shipment of replacement Test Strips to customer site.  
+
+For further information, contact your local Nova Support Department or call 1-800-545-6682."
+Z-1328-2009,2008-08-11,2009-05-07,Terminated,CGL,Process control,"Erroneous, low creatinine results on CCX analyzer","Stat Profile Critical Care Xpress (CCX and CCX+), CCX Creatinine Membrane Kit for CCX analyzer
+Catalog # 35238
+
+Intended for in vitro diagnostic use by health care professionals and for point-of-care usage in the quantitative determination of pH, PCO2, PO2, SO2%, Hematocrit (Hct), Ca++, total hemoglobin (tHb), Oxyhemoglobin (O2Hb), Carboxyhemoglobin (COHb), Methemoglobin (MetHb), reduced hemoglobin (HHb), Oxygen content (O2Ct) and Oxygen capacity (O2Cap) in heparinized whole blood; Na+, K+, CL-; Ca++, Mg++, Glucose heparinized whole blood, serum, or plasma.",Nova Biomedical Corporation,"Worldwide Distribution -- USA, Canada, Germany, France, Czech Republic, Taiwan, Japan, Thailand, Italy, Hungary, India, UK, Ireland, Venezuela, Brazil, and Hong Kong.","Initial:
+USA and Canada - Customer Advisory Notice notification by phone contact with key customer contact facilitated using a Field Correction Script. This contact will be documented within the Nova Biomedical Technical Support database (Pivotal) and on a Field Correction Checklist.  All affected inventory will be replaced at customer sites.
+International - Customer Advisory Notice and Faxback Form being communicated and sent to Nova Biomedical Subsidiaries and Distributors by three methods of delivery (Email, Fax and Phone Call).
+
+Follow-up:
+USA and Canada - Sending the Customer Advisory Notice by email and/or fax to the key customer contact from the initial phone contact.
+International - Sending the Customer Advisory Notice by email and/or fax to the key contact."
+Z-1472-2008,2008-02-21,2008-09-23,Terminated,CGA,Component design/selection,Lithium batteries may fail if the glucose or creatinine meters have been dropped.,"Varta Easypack XL Lithium Polymer Batteries (P/N 41772 and 42215)
+Used with:
+Nova Biomedical StatStrip  Glucose Hospital Meter (P/N 42224) and Nova Biomedical StatSensor Creatinine Hospital Meter and  EZ CHEM Creatinine Meter (P/N 9600).   Statstrip Meter an In vitro diagnostic for use by health care professionals in the quantitative determination of glucose (GLU) in whole blood.  EZ Chem In vitro diagnostic for the quantitative measurement of creatinine in capillary, venous or arterial blood.",Nova Biomedical Corporation,"Worldwide Distribution --- including USA and countries of Canada, Taiwan, Hungary, Malaysia, Australia, Russia, Thailand, New Zealand, Austria, France, Germany, UK, China, South Africa, Croatian, Peru, and Czech Republic.","Nova Biomedical notified consignees by telephone and followed by the Recall Notification letter for the Vata Easy Pack XL Lithium Polymer Battery, dated 2/2108 and mailed 2/26/08.  Users are notified of the problem with the battery in the Nova Stat Strip Blood Glucose Hospital Meter System and is replacing batteries by on site visit.
+E-Z-EM , Inc. notified their customers by letter dated 3/17/08.   Contact Nova Biomedical Corporation at 1-800-545-6682 for assistance."
+Z-0724-2008,2007-11-02,2008-02-16,Terminated,CGL,Device Design,Incorrect Results - Creatinine results were lower than the laboratory reference method.,"Nova - EZ CHEM Creatinine Meter: SRS Versions 5.1 and 5.2
+P/N 9600, Nova Biomedical, Waltham, MA  02454",Nova Biomedical Corporation,"Nationwide Distribution, including the state of NY","Nova Biomedical issued an Urgent: Medical Device Recall notification letter to consignees dated November 19, 2007. The letter addressed the issues with the product(s) and requested that if users had any remaining stock that it must be returned.  The firm also provided a Customer Response form to be returned.  Questions concerning this recall will be addressed by Gina Vogelsberg at 1-800-544-4624 or by email at gvogelsberg@ezem.com."
+Z-0725-2008,2007-11-02,2008-02-16,Terminated,CGL,Device Design,Incorrect Results - Creatinine results were lower than the laboratory reference method.,"Nova - EZ CHEM Control Solution P/N 9612, Nova Biomedical, Waltham, MA  02454",Nova Biomedical Corporation,"Nationwide Distribution, including the state of NY","Nova Biomedical issued an Urgent: Medical Device Recall notification letter to consignees dated November 19, 2007. The letter addressed the issues with the product(s) and requested that if users had any remaining stock that it must be returned.  The firm also provided a Customer Response form to be returned.  Questions concerning this recall will be addressed by Gina Vogelsberg at 1-800-544-4624 or by email at gvogelsberg@ezem.com."
+Z-0726-2008,2007-11-02,2008-02-16,Terminated,CGL,Device Design,Incorrect Results - Creatinine results were lower than the laboratory reference method.,"Nova - EZ CHEM Linearity Solution P/N 9618, Nova Biomedical, Waltham, MA  02454",Nova Biomedical Corporation,"Nationwide Distribution, including the state of NY","Nova Biomedical issued an Urgent: Medical Device Recall notification letter to consignees dated November 19, 2007. The letter addressed the issues with the product(s) and requested that if users had any remaining stock that it must be returned.  The firm also provided a Customer Response form to be returned.  Questions concerning this recall will be addressed by Gina Vogelsberg at 1-800-544-4624 or by email at gvogelsberg@ezem.com."
+Z-0295-2008,2007-09-17,2008-01-17,Terminated,JBS,Device Design,Elevated Normalized Ionized Calcium (nCa) and Normalized Ionized Magnesium (nMg) calculated values on patient samples,"Nova 8 Analyzer Calibrator Pack (Catalog/REF # 15196), Nova Biomedical, Waltham, MA",Nova Biomedical Corporation,"Worldwide, USA, Canada, Argentina, Bangladesh, Bolivia, China, Czech Republic, Denmark, Ecuador, Egypt, Finland, France,Germany,Greece, Hungary, India, Indonesia, Ireland,Italy, Japan, Korea, Mexico, Peru, Poland, Scotland, South Africa, Spain, Sri Lanka. Switzerland, Syria ,Taiwan, Turkey and The United Kingdom","Nova issued a Customer Advisory Notice notification by phone
+on 9/17/07  to contact customers using a script .  If the facility reports Normalized Ionized Calcium or Normalized Ionized Magnesium, Nova Biomedical will replace existing stock of Nova 8 calibrator packs. If the facility does not report Normalized Ionized Calcium or Normalized
+Ionized Magnesium, the account can continue to use the existing lot of calibrator packs.This contact will be documented within the Nova Biomedical complaint database. Intemational Customer Advisory Notice being sent to Nova Biomedical Subsidiariies and Distributors by Federal Express Envelope.The Federal Express envelopes tracking number will be used for delivery confirmation."
+Z-0576-06,2006-01-27,2006-02-28,Terminated,CHL,Other,Analyzers may fail to perform scheduled automatic two-point calibrations and Quality Control runs,"Stat Profile Critical Care (CCX) Analyzer 
+Catalog Number: 35942",Nova Biomedical Corporation,"Nationwide
+Foreign: Canada, UAE, Taiwan, Singapore, Budapest, UK, France, Malaysia, France, Mexico, Korea, Finland, Germany, Turkey, Ireland, Italy, Austria, Australia, Netherlands, Venezuela, Japan, Greece, Thailand, Israel, Spain, China, Hong Kong, Argentina, Czech Republic, Croatia,Trinidad WI",Nova Biomedical Issued on 1/27/2006 an Advisory Notice to Stat Profile CCX Customers to report the malfunction and request the Good Laboratory Practices (GLP) be used and review be made to assure the calibration status and QC is being performed. A new software version is scheduled to be released to correct the error.
+Z-0577-06,2006-01-27,2006-02-28,Terminated,CHL,Other,Analyzers may fail to perform scheduled automatic two-point calibrations and Quality Control runs,"Stat Profile Critical Care PLUS  (CCX) Analyzer 
+Catalog Number: 37413",Nova Biomedical Corporation,"Nationwide
+Foreign: Canada, UAE, Taiwan, Singapore, Budapest, UK, France, Malaysia, France, Mexico, Korea, Finland, Germany, Turkey, Ireland, Italy, Austria, Australia, Netherlands, Venezuela, Japan, Greece, Thailand, Israel, Spain, China, Hong Kong, Argentina, Czech Republic, Croatia,Trinidad WI",Nova Biomedical Issued on 1/27/2006 an Advisory Notice to Stat Profile CCX Customers to report the malfunction and request the Good Laboratory Practices (GLP) be used and review be made to assure the calibration status and QC is being performed. A new software version is scheduled to be released to correct the error.
+Z-0578-06,2006-01-27,2006-02-28,Terminated,CHL,Other,Analyzers may fail to perform scheduled automatic two-point calibrations and Quality Control runs,"CCX Operating Software , Version 4.08",Nova Biomedical Corporation,"Nationwide
+Foreign: Canada, UAE, Taiwan, Singapore, Budapest, UK, France, Malaysia, France, Mexico, Korea, Finland, Germany, Turkey, Ireland, Italy, Austria, Australia, Netherlands, Venezuela, Japan, Greece, Thailand, Israel, Spain, China, Hong Kong, Argentina, Czech Republic, Croatia,Trinidad WI",Nova Biomedical Issued on 1/27/2006 an Advisory Notice to Stat Profile CCX Customers to report the malfunction and request the Good Laboratory Practices (GLP) be used and review be made to assure the calibration status and QC is being performed. A new software version is scheduled to be released to correct the error.
+Z-0826-04,2004-03-30,2004-07-20,Terminated,CHL,Other,Incorrectly assembled pumps  may result in  inconsistent compression of the tubing causing erratic results or calibration problems,"Stat Profile Critical Care Xpress (CCX) Analyzer
+Catalog Number: 35942",Nova Biomedical Corporation,"CA, IL, LA, MA ,NJ,  NY, OH, PA, TX
+International: Italy ,England, Japan,Turkey., U.A.E., Greece, Thailand, Switzerland, Finland, Saudi Arabia, Italy, Mexico, Trinidad, Ireland, France, Cyprus, Czech Republic, ,Germany",Nova Biomedical notified users by telephone on 3/31/04 and conducted follow-up by letter either by email or fax. On-site visit will be scheduled to replace the pump assembly.
+Z-0827-04,2004-03-30,2004-07-20,Terminated,CHL,Other,Incorrectly assembled pumps  may result in  inconsistent compression of the tubing causing erratic results or calibration problems,"Stat Profile Critical Care Xpress CCX+ Analyzer
+Catalog Number: 37413",Nova Biomedical Corporation,"CA, IL, LA, MA ,NJ,  NY, OH, PA, TX
+International: Italy ,England, Japan,Turkey., U.A.E., Greece, Thailand, Switzerland, Finland, Saudi Arabia, Italy, Mexico, Trinidad, Ireland, France, Cyprus, Czech Republic, ,Germany",Nova Biomedical notified users by telephone on 3/31/04 and conducted follow-up by letter either by email or fax. On-site visit will be scheduled to replace the pump assembly.
+Z-0828-04,2004-03-30,2004-07-20,Terminated,CHL,Other,Incorrectly assembled pumps  may result in  inconsistent compression of the tubing causing erratic results or calibration problems,"Stat Profile Critical Care Xpress CCX (R)  Analyzer
+Catalog Number: 37562
+R= Refurbished",Nova Biomedical Corporation,"CA, IL, LA, MA ,NJ,  NY, OH, PA, TX
+International: Italy ,England, Japan,Turkey., U.A.E., Greece, Thailand, Switzerland, Finland, Saudi Arabia, Italy, Mexico, Trinidad, Ireland, France, Cyprus, Czech Republic, ,Germany",Nova Biomedical notified users by telephone on 3/31/04 and conducted follow-up by letter either by email or fax. On-site visit will be scheduled to replace the pump assembly.
+Z-0829-04,2004-03-30,2004-07-20,Terminated,CHL,Other,Incorrectly assembled pumps  may result in  inconsistent compression of the tubing causing erratic results or calibration problems,"Stat Profile Critical Care Xpress CCX+ (R) Anaylzer
+Catalog NUmber: 37555
+R= Refurbished",Nova Biomedical Corporation,"CA, IL, LA, MA ,NJ,  NY, OH, PA, TX
+International: Italy ,England, Japan,Turkey., U.A.E., Greece, Thailand, Switzerland, Finland, Saudi Arabia, Italy, Mexico, Trinidad, Ireland, France, Cyprus, Czech Republic, ,Germany",Nova Biomedical notified users by telephone on 3/31/04 and conducted follow-up by letter either by email or fax. On-site visit will be scheduled to replace the pump assembly.
+Z-0830-04,2004-03-30,2004-07-20,Terminated,CHL,Other,Incorrectly assembled pumps  may result in  inconsistent compression of the tubing causing erratic results or calibration problems,"ABG Replacement Pump Assembly
+Catalog Number: 37092",Nova Biomedical Corporation,"CA, IL, LA, MA ,NJ,  NY, OH, PA, TX
+International: Italy ,England, Japan,Turkey., U.A.E., Greece, Thailand, Switzerland, Finland, Saudi Arabia, Italy, Mexico, Trinidad, Ireland, France, Cyprus, Czech Republic, ,Germany",Nova Biomedical notified users by telephone on 3/31/04 and conducted follow-up by letter either by email or fax. On-site visit will be scheduled to replace the pump assembly.
+Z-0060-04,2003-09-22,2003-10-24,Terminated,CHL,Other,Degradation of the magnesium sensor could result in low ionozed magnesium patient samples,"Stat Profile Ultra Magnesium Sensor (In-vitro Diagnostic used with the Stat Profile Ultra M analyzer)
+Part # 20394",Nova Biomedical Corporation,"Natinwide
+Foreign: Italy, Czech, Japan, Taiwan, Hungary, India,  Israel, Mexico, Canada, Germany,Switzerland, Tunisia, Korea, Brazil, Greece, Coatia, China, France, Turkey, Thailand, Argentina.
+Government: VA Decator, GA",Nova Biomedical contacted customers by telephone beginning on  9/26/03. Each account was faxed or mailed Customer Information Bulletin requesting the discard of Mg++ sensors in inventory  that are greater than 4 months old from date of manufacture. Replacement product will be issued.
+Z-0061-04,2003-09-22,2003-10-24,Terminated,CHL,Other,Degradation of the magnesium sensor could result in low ionozed magnesium patient samples,"Stat Profile Critical Care Expres Ionized Magnesium Sensor (In-vitro Diagnostic used with the Stat Profile Critical Care Xpress Analyzer)
+Part # 37271",Nova Biomedical Corporation,"Natinwide
+Foreign: Italy, Czech, Japan, Taiwan, Hungary, India,  Israel, Mexico, Canada, Germany,Switzerland, Tunisia, Korea, Brazil, Greece, Coatia, China, France, Turkey, Thailand, Argentina.
+Government: VA Decator, GA",Nova Biomedical contacted customers by telephone beginning on  9/26/03. Each account was faxed or mailed Customer Information Bulletin requesting the discard of Mg++ sensors in inventory  that are greater than 4 months old from date of manufacture. Replacement product will be issued.
