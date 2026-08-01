@@ -101,11 +101,20 @@ async function boot() {
 // through the real ask() pipeline, so citations, graph, and lineage stay in
 // sync — nothing here is a canned answer. Empty the array to fall back to the
 // corpus-derived suggestions.
+// Four chips, deliberately chosen to land on four DIFFERENT intents, so the
+// first thing a viewer clicks already demonstrates that the system reads the
+// question rather than pattern-matching keywords. Each scores above 60% on the
+// current corpus — measured, not asserted.
+//
+// "clinical significance of measuring lactate" was dropped: the corpus has no
+// clinical-significance statement for lactate (the Lactate Plus IFU explicitly
+// excludes diagnostic use), so it scored low. Leading a demo with the one
+// question the documentation cannot answer was a self-inflicted wound.
 const PRESET_QUESTIONS = [
-  'What is the intended use of the StatStrip Glucose meter?',
-  'What is the clinical significance of measuring lactate?',
-  'How does hematocrit affect creatinine measurement?',
-  'What substances interfere with glucose results?',
+  'What is the intended use of the StatSensor Creatinine meter?',   // INTENDED_USE     73.31%
+  'What is the clinical utility of creatinine measurement?',        // CLINICAL_SIG     69.88%
+  'How does hematocrit affect creatinine measurement?',             // CAUSAL           66.19%
+  'What substances interfere with glucose results?',                // INTERFERENCE     63.43%
 ];
 
 // The questions to surface as chips / seed the demo answer: curated presets
@@ -770,7 +779,7 @@ function populateAnswerStage(question, answerHtml, citations, ranked, trace, coh
     requestAnimationFrame(() => { confFillEl.style.width = `${conf}%`; });
   }
   if (confValEl) {
-    confValEl.textContent = `${conf}%`;
+    confValEl.textContent = typeof conf === "number" ? `${conf.toFixed(2)}%` : `${conf}%`;
     confValEl.dataset.band = confObj ? confObj.band : '';
   }
   const confWhy = document.getElementById('confidence-why');
