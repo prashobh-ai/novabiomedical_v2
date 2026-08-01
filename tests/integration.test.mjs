@@ -138,8 +138,10 @@ function retrieve(q) {
     ? h.results.map(r => ({ chunkIdx: r.chunkIdx, score: r.score, _fusion: r }))
     : bm25.search(q, 20);
   const cohesion = cohereByDocument(rawRanked, idx.chunks, { queryTerms: tokenize(q), bm25Index: bm25 });
-  const built = buildAnswer(q, cohesion.ranked, idx.chunks, cohesion);
-  return { ranked: cohesion.ranked, cohesion, retrieval: { mode: h.mode, ...h.diagnostics }, ...built };
+  // Answer from the full pool — cohesion is metadata, not a gate. See main.js.
+  const built = buildAnswer(q, rawRanked, idx.chunks, cohesion,
+    { semantic, bm25: idx.bm25, diagnostics: h.diagnostics });
+  return { ranked: rawRanked, cohesion, retrieval: { mode: h.mode, ...h.diagnostics }, ...built };
 }
 
 function ask(question) {
@@ -191,6 +193,124 @@ check('degenerate and empty queries degrade without throwing', () => {
 check('exact identifier lookup still works (lexical path intact)', () => {
   const r = ask('K232075');
   assert(r.citations.length > 0, 'no citations for exact K-number');
+});
+
+
+// =============================================================================
+// Phase 2.1 — answer quality, confidence derivation, health explainability
+// =============================================================================
+const { analyseQuestion } = await import(path.join(SITE, 'js/nlu.js'));
+const { computeHealth } = await import(path.join(SITE, 'js/health.js'));
+
+console.log('\n=== NLU ROUTING ===');
+
+check('intent classification separates question types', () => {
+  assert(analyseQuestion('What is the clinical significance of measuring lactate?')
+    .intent.name === 'CLINICAL_SIGNIFICANCE');
+  assert(analyseQuestion('What is the intended use of the StatStrip Glucose meter?')
+    .intent.name === 'INTENDED_USE');
+  assert(analyseQuestion('What substances interfere with glucose results?')
+    .intent.name === 'INTERFERENCE');
+  assert(analyseQuestion('How does hematocrit affect creatinine measurement?')
+    .intent.name === 'CAUSAL');
+});
+
+check('focus entities are extracted', () => {
+  const a = analyseQuestion('How does hematocrit affect creatinine measurement?');
+  assert(a.focus.includes('creatinine') && a.focus.includes('hematocrit'),
+    `focus was ${JSON.stringify(a.focus)}`);
+});
+
+check('registration records never answer a clinical-significance question', () => {
+  // The exact demo-2 failure: a UDI record answering "clinical significance of lactate".
+  const r = ask('What is the clinical significance of measuring lactate?');
+  for (const c of r.citations) {
+    const rt = (c.chunk.meta && c.chunk.meta.record_type) || '';
+    assert(rt !== 'udi', 'a UDI registration record was cited as clinical evidence');
+  }
+});
+
+check('answers do not drift to a different analyte', () => {
+  // "interfere with glucose" was being answered from the StatSensor CREATININE table.
+  const r = ask('What substances interfere with glucose results?');
+  const text = String(r.answerHtml).toLowerCase();
+  if (/creatinine/.test(text)) {
+    assert(/glucose/.test(text), 'answer mentions creatinine but never glucose');
+  }
+});
+
+check('legal boilerplate is excluded from answers', () => {
+  for (const q of ['How does hematocrit affect creatinine measurement?',
+                   'What is the intended use of the StatStrip Glucose meter?']) {
+    const text = String(ask(q).answerHtml).toLowerCase();
+    assert(!/will not be responsible|free of all charges|defective material/.test(text),
+      `warranty boilerplate leaked into: ${q}`);
+  }
+});
+
+check('no sentence is repeated within an answer', () => {
+  const r = ask('What is the intended use of the StatStrip Glucose meter?');
+  const sents = (r.summary?.sentences || []).map(s => s.display);
+  const norm = sents.map(s => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').slice(0, 70));
+  assert(new Set(norm).size === norm.length, 'duplicate sentences survived MMR');
+});
+
+console.log('\n=== CONFIDENCE IS DERIVED, NOT CONSTANT ===');
+
+check('confidence varies across questions', () => {
+  const qs = ['What is the clinical significance of measuring lactate?',
+              'What is the intended use of the StatStrip Glucose meter?',
+              'What substances interfere with glucose results?',
+              'K232075', 'What is the sample volume?'];
+  const vals = qs.map(q => ask(q).confidence?.percent ?? -1);
+  assert(new Set(vals).size > 1, `all confidences identical: ${vals.join(',')}`);
+  assert(!vals.every(v => v === 75), 'confidence is pinned at the old 75% floor');
+});
+
+check('confidence exposes all five signals with weights', () => {
+  const c = ask('What is the intended use of the StatStrip Glucose meter?').confidence;
+  for (const k of ['retrievalMargin', 'retrieverAgreement', 'queryCoverage',
+                   'sourceConsensus', 'evidenceQuality']) {
+    assert(c.signals[k], `missing signal ${k}`);
+    assert(typeof c.signals[k].value === 'number', `${k} has no value`);
+    assert(c.signals[k].how && c.signals[k].why, `${k} has no derivation text`);
+  }
+  const w = Object.values(c.signals).reduce((a, s) => a + s.contribution, 0);
+  assert(Math.abs(w - 1) < 0.01, `signal weights sum to ${w}, expected 1`);
+});
+
+check('a nonsense question yields low confidence, not a confident wrong answer', () => {
+  const r = ask('asdfghjkl qwertyuiop zxcvbnm');
+  assert((r.confidence?.percent ?? 0) < 40, `nonsense scored ${r.confidence?.percent}%`);
+});
+
+console.log('\n=== KNOWLEDGE HEALTH IS EXPLAINABLE ===');
+
+check('every health metric ships a formula, inputs and interpretation', () => {
+  const h = computeHealth(idx);
+  assert(h.metrics.length >= 5, 'expected 5 metrics');
+  for (const m of h.metrics) {
+    assert(m.formula, `${m.label} has no formula`);
+    assert(m.inputs && Object.keys(m.inputs).length, `${m.label} has no inputs`);
+    assert(m.meaning && m.lowMeans, `${m.label} has no interpretation`);
+    assert(m.value >= 0 && m.value <= 100, `${m.label} out of range: ${m.value}`);
+  }
+});
+
+check('every risk states how it was counted', () => {
+  for (const r of computeHealth(idx).risks) {
+    assert(r.how && r.detail && r.why, `risk "${r.label}" is unexplained`);
+  }
+});
+
+check('document dates carry provenance', () => {
+  const dated = idx.documents.filter(d => d.date_date);
+  assert(dated.length > 0, 'no document resolved a date');
+  for (const d of dated.slice(0, 40)) {
+    assert(d.date_method && d.date_method !== 'unknown', `${d.name} dated without a method`);
+    assert(typeof d.date_confidence === 'number', `${d.name} has no date confidence`);
+    assert(d.date_explanation, `${d.name} has no date explanation`);
+  }
 });
 
 console.log('\n' + '='.repeat(62));
